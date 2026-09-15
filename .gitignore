@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# Env
+.env
+.env.local
+
+# Datasets (large/user-provided, or deterministically regenerated — see README)
+data/secom/*
+data/wm811k/*
+data/synthetic/*
+!data/secom/.gitkeep
+!data/wm811k/.gitkeep
+!data/synthetic/.gitkeep
+
+# Trained model artifacts (regenerate via scripts/train_*.py)
+backend/models/artifacts/*
+!backend/models/artifacts/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# MongoDB local data dir (if run from inside the repo)
+mongo-data/

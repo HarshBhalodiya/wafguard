@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-surface text-ink-primary antialiased;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: theme("colors.surface.DEFAULT");
+  }
+  ::-webkit-scrollbar-thumb {
+    background: theme("colors.surface.border");
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply bg-surface-panel border border-surface-border rounded-lg shadow-panel;
+  }
+  .panel-header {
+    @apply flex items-center justify-between px-4 py-3 border-b border-surface-border;
+  }
+  .label-caps {
+    @apply text-xs font-semibold uppercase tracking-wide text-ink-secondary;
+  }
+}
