@@ -6,7 +6,7 @@
 
 | Field | Value |
 |---|---|
-| **Team Name** | WafGuard AI squad |
+| **Team Name** | WafGuard squad |
 | **Track** | AI |
 | **Team Lead** | Het Baraiya — 24dce008@charusat.edu.in |
 | **Members** | Harsh Bhalodiya, Tirth Gambhava, Ujjain Dhanani |
