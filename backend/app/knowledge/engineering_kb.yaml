@@ -1,0 +1,109 @@
+# WafGuard AI — engineering knowledge base (Phase 5, brief P4)
+#
+# What this file is: the list of corrective / investigative ACTIONS an engineer
+# may take for each root-cause candidate the multi-signal engine can rank. It is
+# authored knowledge, readable and editable by an engineer, and it is the ONLY
+# source of action text — no LLM ever writes an action (brief P4: "Do NOT let an
+# LLM invent actions").
+#
+# What this file is NOT: a source of outcome numbers. It holds no recovery rates,
+# no case counts, no yield deltas. Those are measured at request time from the
+# historical intervention table (data/synthetic/interventions.parquet → Mongo
+# `interventions`) by app/recommend/engine.py. Numbers stored here would rot and
+# could not be traced to cases.
+#
+# Keys under `causes` are the engine's candidate names
+# (app/services/rootcause_service.py CANDIDATE_DEFINITIONS). `{equipment}` and
+# `{peers}` are filled in at render time.
+#
+# DATA HONESTY: the intervention history these actions are scored against is
+# SYNTHETIC (simulated by app/simulator/interventions.py). Recommendation
+# statistics are therefore demo numbers, labelled as such everywhere.
+
+version: "2.0.0"
+provenance: >-
+  Authored engineering knowledge base. Action text only; every statistic shown
+  next to an action is measured from the (synthetic) intervention history at
+  request time.
+min_cases_for_confidence: 10
+
+causes:
+  RF Power:
+    - id: rf_generator_recalibration
+      text: "Recalibrate the RF generator and verify delivered power on {equipment}."
+      kind: corrective
+    - id: rf_match_network_service
+      text: "Service / re-tune the RF match network on {equipment}."
+      kind: corrective
+    - id: rf_peer_comparison
+      text: "Compare {equipment}'s RF delivery against peer tool(s) {peers} before releasing the next lot."
+      kind: investigative
+
+  Pressure:
+    - id: throttle_valve_service
+      text: "Clean and re-calibrate the throttle valve / pressure controller on {equipment}."
+      kind: corrective
+    - id: vacuum_leak_check
+      text: "Run a helium leak check and pump-down rate test on {equipment}."
+      kind: investigative
+    - id: chamber_wet_clean
+      text: "Perform a chamber wet clean on {equipment} (particle source near the pressure path)."
+      kind: corrective
+
+  Temperature:
+    - id: thermocouple_recalibration
+      text: "Recalibrate heater thermocouples / chuck temperature on {equipment}."
+      kind: corrective
+    - id: temperature_loop_tuning
+      text: "Re-tune the temperature control loop on {equipment} and compare against {peers}."
+      kind: corrective
+
+  Gas Flow:
+    - id: mfc_recalibration
+      text: "Recalibrate the mass flow controllers on {equipment}."
+      kind: corrective
+    - id: gas_line_purge
+      text: "Purge and leak-check the gas lines feeding {equipment}."
+      kind: corrective
+    - id: recipe_transition_review
+      text: "Review the recipe transition / stabilisation step timing on {equipment}."
+      kind: investigative
+
+  Etch Time:
+    - id: recipe_timing_review
+      text: "Review recipe step timing for the current process step on {equipment}."
+      kind: investigative
+
+  Voltage:
+    - id: power_supply_check
+      text: "Inspect power supply stability on {equipment}."
+      kind: investigative
+
+  Current:
+    - id: current_draw_check
+      text: "Inspect current draw stability on {equipment}."
+      kind: investigative
+
+  Equipment Yield History:
+    - id: chamber_health_review
+      text: "Escalate {equipment} to equipment engineering for a full chamber health review."
+      kind: investigative
+    - id: seasoning_run
+      text: "Run chamber seasoning / conditioning wafers on {equipment} before the next product lot."
+      kind: corrective
+
+  Equipment Failure History:
+    - id: component_replacement
+      text: "Replace worn consumables / components flagged by recent repairs on {equipment}."
+      kind: corrective
+    - id: failure_history_review
+      text: "Review recent unscheduled-repair events on {equipment} for a recurring failure."
+      kind: investigative
+
+  Maintenance Overdue:
+    - id: preventive_maintenance
+      text: "Pull {equipment} forward for its preventive-maintenance cycle."
+      kind: corrective
+    - id: vibration_inspection
+      text: "Inspect pumps, robot and bearings on {equipment} for vibration / wear."
+      kind: investigative

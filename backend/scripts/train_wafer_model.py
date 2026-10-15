@@ -48,6 +48,16 @@ def build_dataset() -> tuple[np.ndarray, np.ndarray]:
     return np.stack(X), np.array(y, dtype=np.int64)
 
 
+def stratified_split(X: np.ndarray, y: np.ndarray, seed: int = SEED):
+    """60/20/20 stratified split, shared with the Phase 2C comparison script
+    so every architecture sees exactly the same data."""
+    from sklearn.model_selection import train_test_split
+
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.30, stratify=y, random_state=seed)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.50, stratify=y_temp, random_state=seed)
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+
 def main() -> None:
     settings = get_settings()
 
@@ -55,8 +65,7 @@ def main() -> None:
     X, y = build_dataset()
     print(f"Dataset: {X.shape[0]} samples, shape {X.shape[1:]}")
 
-    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.30, stratify=y, random_state=SEED)
-    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.50, stratify=y_temp, random_state=SEED)
+    X_train, X_val, X_test, y_train, y_val, y_test = stratified_split(X, y)
     print(f"train={len(X_train)} val={len(X_val)} test={len(X_test)}")
 
     print("Training WaferCNN...")
@@ -93,6 +102,21 @@ def main() -> None:
     )
     artifact_path = save_wafer_model(model, bundle, settings.resolve_path(settings.model_dir))
     print(f"\nSaved -> {artifact_path}")
+
+    # Phase 2C: export the 64-d embedding (penultimate layer) for every
+    # val+test map, so similarity search never needs to re-run the CNN.
+    from app.ml.vision.embeddings import extract_embeddings, save_embeddings
+
+    X_pool = np.concatenate([X_val, X_test])
+    y_pool = np.concatenate([y_val, y_test])
+    emb = extract_embeddings(model, X_pool)
+    save_embeddings(
+        settings.resolve_path(settings.model_dir) / "wafer_embeddings.npz",
+        emb,
+        y_pool,
+        lot_ids=[f"synthetic_map_{i:05d}" for i in range(len(y_pool))],
+    )
+    print(f"Saved {emb.shape} embeddings -> backend/models/artifacts/wafer_embeddings.npz")
 
     from app.database import mongodb  # noqa: E402
     from app.database.repositories.model_version_repository import ModelVersionRepository  # noqa: E402

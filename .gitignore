@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
+.venv*/
+mlruns/
 venv/
 .pytest_cache/
 .coverage
@@ -13,6 +15,9 @@ node_modules/
 frontend/dist/
 frontend/.vite/
 npm-debug.log*
+# Vite temp artifacts (regenerated on every dev/build run; one once slipped
+# into the working tree untracked-and-unignored — P9-1 CI audit)
+frontend/vite.config.js.timestamp-*.mjs
 
 # Env
 .env

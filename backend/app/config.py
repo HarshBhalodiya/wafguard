@@ -48,6 +48,31 @@ class Settings(BaseSettings):
     # --- Optional LLM copilot ---
     llm_api_key: str = ""
     llm_model: str = ""
+    # Provider adapter for the copilot's phrasing layer: "" (none, deterministic
+    # template), "anthropic", or "openai_compatible" (self-hosted / watsonx-compatible
+    # endpoints via llm_base_url). The response always names the provider actually used.
+    llm_provider: str = ""
+    llm_base_url: str = ""
+
+    # --- Alert dispatch (Phase 4) ---
+    # Master switch for pushing raised alerts to configured channels. The `log`
+    # channel (structured log record + delivery row, no network) is always on;
+    # `webhook`/`smtp` additionally need the settings below (or admin-set channels
+    # via /api/alerts/channels).
+    alert_dispatch_enabled: bool = True
+    alert_webhook_url: str = ""
+    alert_webhook_timeout_seconds: float = 5.0
+    alert_smtp_host: str = ""
+    alert_smtp_port: int = 587
+    alert_smtp_username: str = ""
+    alert_smtp_password: str = ""
+    alert_smtp_from: str = "wafguard@localhost"
+    alert_smtp_to: str = ""
+
+    # --- Experiment tracking (Phase 7) ---
+    # Local MLflow file store; set MLFLOW_ENABLED=false to turn tracking off.
+    mlflow_enabled: bool = True
+    mlflow_tracking_uri: str = "./mlruns"
 
     @property
     def cors_origin_list(self) -> List[str]:

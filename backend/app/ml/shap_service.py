@@ -14,6 +14,26 @@ import numpy as np
 import pandas as pd
 import shap
 
+# P7-5: TreeExplainer construction is the dominant per-call cost when the
+# root-cause engine runs explain_lot on every request (Phase 3 measured 2.8 s
+# p50 / 3.5 s p95). The explainer depends only on the model, so we cache ONE
+# explainer per model object (attribute-set on the model itself: garbage-
+# collected with the model, immune to id() recycling). Results are identical
+# either way — construction vs reuse changes no numbers, only the clock.
+_MISSING = object()
+
+
+def _get_tree_explainer(model: Any) -> Any:
+    cached = getattr(model, "_wafguard_tree_explainer", _MISSING)
+    if cached is not _MISSING:
+        return cached
+    explainer = shap.TreeExplainer(model)
+    try:
+        setattr(model, "_wafguard_tree_explainer", explainer)
+    except (AttributeError, TypeError):
+        pass  # un-writable model object: fall back to per-call construction
+    return explainer
+
 
 @dataclass
 class FeatureContribution:
@@ -44,7 +64,7 @@ def explain_instance(
     top_n: int = 8,
 ) -> list[FeatureContribution]:
     """X_row: a single-row DataFrame with the exact columns the model was trained on."""
-    explainer = shap.TreeExplainer(model)
+    explainer = _get_tree_explainer(model)
     explanation = explainer(X_row)
     values, base_values = _extract_values_and_base(explanation)
 

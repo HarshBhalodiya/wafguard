@@ -22,20 +22,33 @@ logger = get_logger(__name__)
 _client: Optional[MongoClient] = None
 
 
-def connect() -> None:
-    """Attempt to create the Mongo client. Never raises — logs and moves on."""
+def _safe_uri(uri: str) -> str:
+    """Redact credentials so URIs are safe to print in logs/errors."""
+    if "@" not in uri:
+        return uri
+    scheme, rest = uri.split("://", 1)
+    creds, host = rest.rsplit("@", 1)
+    return f"{scheme}://***@{host}"
+
+
+def connect(timeout_ms: int = 1500) -> None:
+    """Attempt to create the Mongo client. Never raises — logs and moves on.
+
+    `timeout_ms` is the server-selection timeout: the API path wants a fast
+    fail (1.5s), while scripts doing bulk work over a remote cluster need a
+    more patient handshake (pass e.g. 10_000)."""
     global _client
     settings = get_settings()
     try:
-        _client = MongoClient(settings.mongodb_uri, serverSelectionTimeoutMS=1500)
+        _client = MongoClient(settings.mongodb_uri, serverSelectionTimeoutMS=timeout_ms)
         _client.admin.command("ping")
-        logger.info("Connected to MongoDB at %s (db=%s)", settings.mongodb_uri, settings.mongodb_database)
+        logger.info("Connected to MongoDB at %s (db=%s)", _safe_uri(settings.mongodb_uri), settings.mongodb_database)
     except PyMongoError as exc:
         logger.warning(
             "MongoDB not reachable at %s (%s). The API will start, but data-backed "
             "endpoints will return DATABASE_UNAVAILABLE until Mongo is running and "
             "the app is restarted (or a request triggers reconnection).",
-            settings.mongodb_uri,
+            _safe_uri(settings.mongodb_uri),
             exc.__class__.__name__,
         )
         # Keep the client object around; pymongo lazily reconnects on next use.
@@ -75,18 +88,28 @@ def get_database() -> Database:
 # Indexes (spec section 26)
 # ---------------------------------------------------------------------------
 INDEX_SPECS = {
-    "lots": ["lot_id", "equipment", "process_step", "process_start"],
+    "lots": ["lot_id", "equipment_id", "process_step", "process_start"],
     "wafers": ["wafer_id", "lot_id"],
     "equipment": ["equipment_id"],
+    "chambers": ["chamber_id", "equipment_id"],
+    "recipes": ["recipe_id"],
     "process_runs": ["lot_id", "equipment_id", "timestamp", "process_step"],
-    "defects": ["wafer_id", "defect_type"],
+    "defects": ["wafer_id", "lot_id", "defect_type"],
     "predictions": ["lot_id", "timestamp"],
     "root_causes": ["lot_id"],
     "recommendations": ["lot_id"],
     "model_versions": ["model_name", "version"],
     "maintenance": ["equipment_id", "timestamp"],
+    "electrical_tests": ["lot_id"],
+    "timeline_events": ["lot_id", "equipment_id", "event_type", "ts"],
     "alerts": ["lot_id", "severity", "created_at"],
+    "alert_deliveries": ["alert_id", "created_at"],
+    "alert_channels": ["name"],
     "users": ["username"],
+    "interventions": ["intervention_id", "diagnosed_cause", "action_id", "timestamp"],
+    "data_quality_reports": ["lot_id", "status"],
+    "monitoring_snapshots": ["date"],
+    "jobs": ["job_id", "status", "created_at"],
 }
 
 

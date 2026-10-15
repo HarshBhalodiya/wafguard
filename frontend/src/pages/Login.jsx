@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { post } from "../services/api";
 
 export default function Login() {
@@ -8,6 +8,8 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const nextPath = location.state?.from?.pathname || "/dashboard";
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -18,7 +20,7 @@ export default function Login() {
       localStorage.setItem("wafguard_token", data.access_token);
       localStorage.setItem("wafguard_username", data.username);
       localStorage.setItem("wafguard_role", data.role);
-      navigate("/dashboard");
+      navigate(nextPath, { replace: true });
     } catch (err) {
       setError(err.message || "Login failed.");
     } finally {

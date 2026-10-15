@@ -1,0 +1,123 @@
+# WafGuard AI — CI (Phase 9, P9-2)
+#
+# What this covers: the two hermetic test suites (backend on mongomock, frontend
+# on vitest), the frontend production build, and the Phase 4 secret-hygiene gate
+# (P4-5, surfaced here as its own job per P9-3).
+#
+# What it deliberately does NOT do:
+#   * No MongoDB service, no seeding, no training against a shared cluster, and
+#     no `build_dataset.py --all` — those touch shared state (D-014/D-036).
+#   * No secrets are configured: every setting has a safe default (config.py),
+#     the copilot falls back to its deterministic template, and alert dispatch
+#     stays on the no-network `log` channel.
+#   * No lint/type/coverage gates — the repo has none configured; adding one is
+#     new surface beyond the Phase 9 scope (recorded in docs/phase9_plan.md).
+#
+# Why Python 3.13: it is the README-validated version with known wheels for
+# torch/xgboost/shap (local dev machines may run 3.14 — see D-001).
+#
+# Prep steps below mirror what a fresh dev machine needs (the same commands the
+# error messages point to):
+#   * scripts/download_secom.py — data/secom is gitignored (only .gitkeep).
+#   * scripts/train_wafer_model.py — backend/models/artifacts is gitignored;
+#     the vision tests load the wafer CNN artifact and fail honestly without it.
+#
+# Measured locally (P9-1 simulation, Windows, warm pip cache): backend install
+# ~12 min (torch 124 MB dominates; runners' bandwidth is typically much faster),
+# backend suite ~6 min, frontend npm ci + tests + build ~2 min.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -------------------------------------------------------------------------
+  # P9-3: the Phase 4 secret-scan fix (D-029/test_secret_scan.py) as a visible,
+  # fast-fail gate. It only needs git metadata + pytest — no deps install — so
+  # a credential-shaped commit fails loudly within ~30 seconds.
+  # -------------------------------------------------------------------------
+  secret-scan:
+    name: secret scan (tracked files)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install --quiet pytest
+      # --noconftest: the shared tests/conftest.py imports pandas/numpy/app
+      # modules, which this slim job deliberately does not install — the scan
+      # itself is stdlib-only (verified: 2 passed in 0.18s).
+      - name: Scan git-tracked files for credential shapes
+        working-directory: backend
+        run: python -m pytest tests/test_secret_scan.py -q --noconftest
+
+  backend:
+    name: backend suite (pytest, mongomock)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      # data/secom is gitignored; the suite trains the SECOM model in-session
+      # and needs the real UCI files (public download, no credentials).
+      - name: Prep — download SECOM dataset
+        run: python scripts/download_secom.py
+
+      # backend/models/artifacts is gitignored; the vision tests load the wafer
+      # CNN artifact (defect_service raises ModelUnavailableError without it).
+      # Procedural synthetic maps — fully deterministic (seed 99), no download.
+      - name: Prep — train wafer CNN artifact
+        # Catches the exact `def get_wafer_bundle()` gap this phase's P9-1 audit
+        # fixed: the vision tests (test_vision_pipeline.py, test_phase3_rootcause)
+        # load the wafer CNN, raise ModelUnavailableError without it. (A failing
+        # `run` step already fails the job; the former `fail-on-error` key is not
+        # valid workflow syntax and was removed.)
+        run: python scripts/train_wafer_model.py
+
+      - name: Run backend test suite
+        env:
+          MLFLOW_ENABLED: "true"   # tests redirect the tracking store to a tmp dir
+        run: python -m pytest tests/ -q
+
+  frontend:
+    name: frontend suite (vitest) + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies (lockfile-exact)
+        run: npm ci
+
+      - name: Run frontend test suite
+        run: npm test
+
+      - name: Production build
+        run: npm run build

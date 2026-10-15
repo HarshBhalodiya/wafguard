@@ -76,7 +76,14 @@ def evaluate_lot_yield(settings) -> dict:
     _print_confusion("production", clf_report["production"]["confusion_matrix"])
 
     sample = X_test.sample(min(60, len(X_test)), random_state=7) if len(X_test) > 0 else X_test
-    importance = shap_service.global_feature_importance(clf_bundle["production"], sample, top_n=15) if len(sample) else []
+    # The production classifier is a CalibratedClassifierCV (Phase 2A) that TreeExplainer
+    # cannot read; attribute the inner XGBoost model, as yield_service.explain_lot does.
+    tree_model = clf_bundle["production"]
+    if hasattr(tree_model, "calibrated_classifiers_"):
+        tree_model = tree_model.calibrated_classifiers_[0].estimator
+    if hasattr(tree_model, "estimator"):  # sklearn FrozenEstimator wrapper
+        tree_model = tree_model.estimator
+    importance = shap_service.global_feature_importance(tree_model, sample, top_n=15) if len(sample) else []
     print("\n  Top global SHAP features (mean |SHAP| over a test sample):")
     for item in importance[:10]:
         print(f"    {item['feature']:30s} {item['mean_abs_shap']:.4f}")

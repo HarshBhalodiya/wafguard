@@ -38,12 +38,27 @@ def compute_parameter_deviation_score(process_parameters: dict) -> float:
     0-1: how abnormal the *worst* tracked parameter is right now. Uses the
     max (not average) because in practice one drifting parameter is
     usually what actually drives risk, not a mild wobble across all of them.
+
+    Accepts both key styles so callers with different snapshot shapes work:
+    v1-style scalars ("rf_power") and the v2 telemetry aggregates
+    ("rf_power_mean" / "rf_power_max"). For each channel the worst available
+    reading (mean or in-run max) drives the deviation, so a run that drifted
+    out of spec by its end scores even if its lot-level mean stayed mild.
     """
-    deviations = [
-        raw_parameter_deviation(name, process_parameters.get(name))
-        for name in PROCESS_PARAMETER_RANGES
-        if process_parameters.get(name) is not None
-    ]
+    deviations = []
+    for name in PROCESS_PARAMETER_RANGES:
+        candidates = [
+            v
+            for v in (
+                process_parameters.get(name),
+                process_parameters.get(f"{name}_mean"),
+                process_parameters.get(f"{name}_max"),
+            )
+            if v is not None
+        ]
+        if not candidates:
+            continue
+        deviations.append(max(raw_parameter_deviation(name, v) for v in candidates))
 
     if not deviations:
         return 0.0

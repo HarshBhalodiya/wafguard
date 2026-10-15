@@ -1,0 +1,46 @@
+{
+  "version": "1.0.0",
+  "provenance": "Authored engineering knowledge base (spec section 15 permits templates as a knowledge base). Steps are investigation suggestions, never instructions to change a recipe. Case counts are NOT stored here: they would rot. They are measured at render time from lot history by app/services/case_statistics.py and attached to every recommendation item as case_statistics (Phase 5, P5-1).",
+  "templates": {
+    "RF Power": [
+      "Inspect the RF generator on {equipment}.",
+      "Verify RF match network calibration on {equipment} against manufacturer spec.",
+      "Compare {equipment} against peer chamber(s): {peers}.",
+      "Review recent maintenance events on {equipment}.",
+      "Consider routing a verification lot through {equipment} before releasing this lot."
+    ],
+    "Temperature": [
+      "Inspect heater/thermocouple calibration on {equipment}.",
+      "Compare {equipment}'s temperature control loop against peer chamber(s): {peers}.",
+      "Review recent maintenance events on {equipment}."
+    ],
+    "Pressure": [
+      "Inspect chamber pressure control (throttle valve, pump) on {equipment}.",
+      "Compare {equipment}'s pressure control against peer chamber(s): {peers}."
+    ],
+    "Gas Flow": [
+      "Inspect mass flow controllers on {equipment}.",
+      "Verify gas line integrity and calibration on {equipment}."
+    ],
+    "Etch Time": [
+      "Review recipe timing settings for the current process step on {equipment}."
+    ],
+    "Voltage": [
+      "Inspect power supply stability on {equipment}."
+    ],
+    "Current": [
+      "Inspect current draw stability on {equipment}."
+    ],
+    "Equipment Yield History": [
+      "Review {equipment}'s recent lot history for a recurring pattern.",
+      "Escalate to equipment engineering for a full chamber health review of {equipment}."
+    ],
+    "Equipment Failure History": [
+      "Review recent unscheduled-repair events on {equipment}.",
+      "Consider a preventive-maintenance cycle for {equipment}."
+    ],
+    "Maintenance Overdue": [
+      "Schedule an overdue preventive-maintenance/calibration check on {equipment}."
+    ]
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "rules_version": "1.0.0",
+  "doc": "Rules for the root-cause evidence graph (brief PHASE 3C). An engineer can read and edit this file; the graph builder reads it at runtime and never hardcodes these links in Python.",
+  "justification_source": "backend/app/simulator/mechanisms.py — the generator's mechanism table. Every entry there names the sensor channel a fault pushes (process_physics.FAULT_SEVERITY), the spatial signature it paints on the wafer (Mechanism.spatial_signature) and the yield loss it causes (Mechanism.yield_loss_pp). These rules restate those physics links for the ENGINE's candidate set; they do not read ground truth.",
+  "edge_semantics": {
+    "kind_measured": "strength comes from this lot's own data (feature snapshot, wafer pattern, yield/defect density)",
+    "kind_rule": "strength comes from this file; the evidence link is the rule_id, which is auditable text, not a hidden constant"
+  },
+  "candidate_rules": [
+    {
+      "rule_id": "rule:rf-power:plasma-power-instability",
+      "candidate": "RF Power",
+      "mechanism_id": "plasma_power_instability",
+      "mechanism": "Plasma power delivery instability",
+      "defect_patterns": ["Edge-Ring", "Scratch"],
+      "edge_strength": 0.80,
+      "justification": "mechanisms.MECHANISMS['rf_power_drift'] pushes the rf_power channel and paints Edge-Ring (edge_bias 0.55) with a 0.05 scratch bias; yield_loss_pp 8.5."
+    },
+    {
+      "rule_id": "rule:pressure:chamber-pressure-instability",
+      "candidate": "Pressure",
+      "mechanism_id": "chamber_pressure_instability",
+      "mechanism": "Chamber pressure instability driving particle generation",
+      "defect_patterns": ["Edge-Ring"],
+      "edge_strength": 0.85,
+      "justification": "mechanisms.MECHANISMS['chamber_pressure_instability'] pushes pressure, paints Edge-Ring (edge_bias 0.65), particle_multiplier 7.0; yield_loss_pp 10.0 — the strongest edge-biased mechanism in the table."
+    },
+    {
+      "rule_id": "rule:gas-flow:recipe-transition-stress",
+      "candidate": "Gas Flow",
+      "mechanism_id": "recipe_transition_problem",
+      "mechanism": "Recipe-transition stress with a gas-flow offset",
+      "defect_patterns": ["Loc"],
+      "edge_strength": 0.70,
+      "justification": "FAULT_SEVERITY offsets gas_flow first (and pressure second) for recipe_transition_problem, which paints Loc (edge_bias 0.20, scratch_bias 0.10); yield_loss_pp 6.5."
+    },
+    {
+      "rule_id": "rule:temperature:thermal-particle-condensation",
+      "candidate": "Temperature",
+      "mechanism_id": "thermal_particle_condensation",
+      "mechanism": "Thermal excursion with in-chamber particle condensation",
+      "defect_patterns": ["Donut", "Edge-Loc"],
+      "edge_strength": 0.60,
+      "justification": "No dedicated temperature fault exists; the table's Donut-painting mechanisms (sensor_drift yield_loss_pp 7.0 and contamination_event yield_loss_pp 13.0) are the thermal/condensation family, so a temperature excursion is mapped to them with a lower edge strength than the direct channels."
+    },
+    {
+      "rule_id": "rule:etch-time:over-etch-edge-removal",
+      "candidate": "Etch Time",
+      "mechanism_id": "over_etch_edge_starvation",
+      "mechanism": "Over-etch / etch-time deviation with edge-biased removal",
+      "defect_patterns": ["Edge-Ring"],
+      "edge_strength": 0.55,
+      "justification": "etch_time is an etch-process parameter; the table reaches edge-biased removal only through the edge_bias of the pressure/RF mechanisms (0.65/0.55), so this is mapped at a deliberately weaker strength than the sensor channels."
+    },
+    {
+      "rule_id": "rule:equipment-condition:degradation-scratch",
+      "candidate": "Equipment Yield History",
+      "mechanism_id": "equipment_degradation",
+      "mechanism": "Tool degradation (worsens with days since maintenance)",
+      "defect_patterns": ["Scratch"],
+      "edge_strength": 0.65,
+      "justification": "mechanisms.MECHANISMS['equipment_degradation'] paints Scratch (scratch_bias 0.55, particle_multiplier 6.0) and is reset by maintenance; yield_loss_pp 5.5."
+    },
+    {
+      "rule_id": "rule:equipment-condition:degradation-scratch",
+      "candidate": "Equipment Failure History",
+      "mechanism_id": "equipment_degradation",
+      "mechanism": "Tool degradation (worsens with days since maintenance)",
+      "defect_patterns": ["Scratch"],
+      "edge_strength": 0.65,
+      "justification": "Same mechanism as Equipment Yield History — failure history is the other observable surface of the same degradation process (yield_loss_pp 5.5)."
+    },
+    {
+      "rule_id": "rule:equipment-condition:degradation-scratch",
+      "candidate": "Maintenance Overdue",
+      "mechanism_id": "equipment_degradation",
+      "mechanism": "Tool degradation (worsens with days since maintenance)",
+      "defect_patterns": ["Scratch"],
+      "edge_strength": 0.75,
+      "justification": "The degradation mechanism is defined by days-since-maintenance, so an overdue tool maps to it at the highest strength of the three condition candidates."
+    }
+  ],
+  "unmapped_candidates": {
+    "Voltage": "No entry in the generator's mechanism table pushes voltage; an electrical excursion has no authored physical mechanism, so the graph shows the sensor-issue node with no mechanism edge rather than inventing one.",
+    "Current": "Same as Voltage — no authored mechanism."
+  },
+  "defect_to_yield_loss": {
+    "note": "The defect-pattern -> yield-loss edge strength is MEASURED from this lot's defect density (0-1) and its distance below the low-yield threshold; nothing here is a constant.",
+    "low_yield_threshold": 85.0
+  }
+}

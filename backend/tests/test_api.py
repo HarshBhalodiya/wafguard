@@ -18,8 +18,13 @@ from app.main import app
 
 @pytest.fixture()
 def client(db):
+    """Authenticated admin client — Phase 4 RBAC requires a token on every
+    route except /api/health and /api/auth/login (see test_rbac.py)."""
     app.dependency_overrides[get_db] = lambda: db
     with TestClient(app) as test_client:
+        login = test_client.post("/api/auth/login", json={"username": "admin", "password": "wafguard-admin"})
+        assert login.status_code == 200, login.text
+        test_client.headers["Authorization"] = f"Bearer {login.json()['data']['access_token']}"
         yield test_client
     app.dependency_overrides.clear()
 
@@ -60,16 +65,16 @@ def test_login_success_and_failure(client):
     )
 
 
-def test_dashboard(client):
+def test_dashboard(client, db):
     data = _assert_envelope_ok(client.get("/api/dashboard"))
     for key in ("overall_yield", "at_risk_lot_count", "high_risk_lot_count", "top_root_causes", "yield_trend", "top_risk_lots"):
         assert key in data
-    assert data["total_lots"] == 950
+    assert data["total_lots"] == db.lots.count_documents({})  # scale comes from the simulator config, not a magic number
 
 
-def test_list_and_get_lot(client, incident_lot_id):
+def test_list_and_get_lot(client, incident_lot_id, db):
     listed = _assert_envelope_ok(client.get("/api/lots", params={"limit": 5}))
-    assert listed["total"] == 950
+    assert listed["total"] == db.lots.count_documents({})
     assert len(listed["items"]) == 5
 
     filtered = _assert_envelope_ok(client.get("/api/lots", params={"risk_level": "HIGH", "limit": 100}))
@@ -77,7 +82,7 @@ def test_list_and_get_lot(client, incident_lot_id):
 
     lot = _assert_envelope_ok(client.get(f"/api/lots/{incident_lot_id}"))
     assert lot["lot_id"] == incident_lot_id
-    assert lot["equipment"] == "ETCH_007"
+    assert lot["equipment_id"] == lot["equipment"]  # schema v2 dual field
 
     _assert_envelope_error(client.get("/api/lots/LOT_DOES_NOT_EXIST"), expected_status=404, expected_code="NOT_FOUND")
 
@@ -106,6 +111,7 @@ def test_wafers_list_and_map(client, incident_lot_id):
     wafers = _assert_envelope_ok(client.get("/api/wafers", params={"lot_id": incident_lot_id}))
     assert len(wafers) == 25
     wafer_id = wafers[0]["wafer_id"]
+    assert "die_grid" not in wafers[0]  # schema v2: grids are materialized on demand, not stored
 
     wafer_map = _assert_envelope_ok(client.get(f"/api/wafers/{wafer_id}/map"))
     assert wafer_map["wafer_id"] == wafer_id
@@ -140,12 +146,13 @@ def test_risk_lots(client):
     assert all(item["risk_level"] in ("MEDIUM", "HIGH") for item in data)
 
 
-def test_equipment_list_and_detail(client):
+def test_equipment_list_and_detail(client, db):
     equipment_list = _assert_envelope_ok(client.get("/api/equipment"))
-    assert len(equipment_list) == 30
+    assert len(equipment_list) == db.equipment.count_documents({})
 
-    detail = _assert_envelope_ok(client.get("/api/equipment/ETCH_007"))
-    assert detail["equipment_id"] == "ETCH_007"
+    some_equipment_id = equipment_list[0]["equipment_id"]
+    detail = _assert_envelope_ok(client.get(f"/api/equipment/{some_equipment_id}"))
+    assert detail["equipment_id"] == some_equipment_id
     assert "recent_maintenance" in detail and "peers" in detail
 
     _assert_envelope_error(client.get("/api/equipment/NOT_REAL"), expected_status=404)
@@ -191,7 +198,11 @@ def test_data_import_requires_auth_then_succeeds(client, db):
         ]
     }
     try:
-        _assert_envelope_error(client.post("/api/data/import", json=payload), expected_status=401)
+        # explicit empty header overrides the fixture's admin token — this is the
+        # anonymous case (full anonymous matrix lives in test_rbac.py)
+        _assert_envelope_error(
+            client.post("/api/data/import", json=payload, headers={"Authorization": ""}), expected_status=401
+        )
 
         login_data = _assert_envelope_ok(client.post("/api/auth/login", json={"username": "admin", "password": "wafguard-admin"}))
         token = login_data["access_token"]
@@ -206,11 +217,10 @@ def test_data_import_requires_auth_then_succeeds(client, db):
         db.lots.delete_one({"lot_id": test_lot_id})
 
 
-def test_copilot(client, incident_lot_id):
+def test_copilot(client, incident_lot_id, db):
     data = _assert_envelope_ok(client.post(f"/api/lots/{incident_lot_id}/copilot", json={"question": "Why is this lot at risk?"}))
     assert data["source"] == "deterministic_template"
     assert data["lot_id"] == incident_lot_id
-    assert "RF Power" in data["answer"]
-    assert data["evidence"]["equipment"] == "ETCH_007"
+    assert data["evidence"]["equipment"] == db.lots.find_one({"lot_id": incident_lot_id})["equipment"]
 
     _assert_envelope_error(client.post("/api/lots/LOT_DOES_NOT_EXIST/copilot", json={}), expected_status=404)

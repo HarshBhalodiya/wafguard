@@ -75,8 +75,13 @@ def train_wafer_cnn(
     batch_size: int = 32,
     lr: float = 1e-3,
     device: str = "cpu",
-) -> tuple[WaferCNN, dict]:
-    model = WaferCNN().to(device)
+    model: Optional[nn.Module] = None,
+) -> tuple[nn.Module, dict]:
+    """model: pass any backbone with the WaferCNN forward contract (logits, features);
+    defaults to the production WaferCNN. Used by the Phase 2C architecture comparison."""
+    if model is None:
+        model = WaferCNN()
+    model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
 

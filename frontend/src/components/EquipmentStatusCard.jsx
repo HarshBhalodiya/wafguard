@@ -7,7 +7,7 @@ const STATUS_STYLES = {
   maintenance: { label: "Maintenance", color: "text-status-info", bar: "bg-status-info" },
 };
 
-export default function EquipmentStatusCard({ equipment }) {
+export default function EquipmentStatusCard({ equipment, spc }) {
   const style = STATUS_STYLES[equipment.status] || STATUS_STYLES.operational;
   return (
     <Link to={`/equipment`} className="panel p-4 block hover:border-brand/40 transition-colors">
@@ -29,6 +29,20 @@ export default function EquipmentStatusCard({ equipment }) {
 
       {equipment.anomaly_status && (
         <div className="mt-2 text-[11px] text-status-warning">⚠ {equipment.anomaly_status}</div>
+      )}
+
+      {/* P8-4: control-chart breach context from the P5-2 API. Honest label:
+          lot-level SPC (running mean ±3σ vs the tool's own prior history), never
+          per-reading SPC, and the static generator health_score above is not
+          reinterpreted by it. Omitted entirely when the chart data is absent. */}
+      {spc && (
+        <div className="mt-2 text-[11px] flex items-center gap-1.5">
+          <span className="text-ink-muted">SPC (lot-level):</span>
+          <span className={spc.breaches > 0 ? "text-status-critical" : "text-status-healthy"}>
+            {spc.breaches} breach{spc.breaches === 1 ? "" : "es"}
+          </span>
+          <span className="text-ink-muted">· last {spc.window} lots</span>
+        </div>
       )}
     </Link>
   );

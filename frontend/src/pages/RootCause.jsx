@@ -6,12 +6,20 @@ import Panel from "../components/Panel.jsx";
 import LotPicker from "../components/LotPicker.jsx";
 import RootCauseChart from "../components/RootCauseChart.jsx";
 import EvidenceChain from "../components/EvidenceChain.jsx";
+import EvidenceGraph from "../components/EvidenceGraph.jsx";
 
 export default function RootCause() {
   const [params] = useSearchParams();
   const lotId = params.get("lot_id");
 
   const { data, loading, error, reload } = useApi(() => (lotId ? get(`/lots/${lotId}/root-cause`) : Promise.resolve(null)), [lotId]);
+  // The evidence graph is a separate, optional view: if it fails to load the
+  // ranked-candidate analysis above must still render (same failure-tolerant
+  // pattern as the equipment SPC chip).
+  const { data: graph } = useApi(
+    () => (lotId ? get(`/lots/${lotId}/evidence-graph`) : Promise.resolve(null)),
+    [lotId]
+  );
 
   if (!lotId) return <LotPicker title="Root Cause Analysis" basePath="/root-cause" />;
   if (loading) return <LoadingState label="Computing root-cause candidates…" />;
@@ -32,6 +40,15 @@ export default function RootCause() {
       <Panel title="Ranked Candidates">
         <RootCauseChart candidates={data.candidates} />
       </Panel>
+
+      {graph && (
+        <Panel
+          title="Evidence Graph"
+          subtitle={`How the top candidates could reach yield loss on ${lotId}. Solid = measured on this lot, dashed = readable rule. Candidates, not confirmed causes.`}
+        >
+          <EvidenceGraph graph={graph} />
+        </Panel>
+      )}
 
       {data.candidates.map((candidate) => (
         <Panel key={candidate.candidate} title={`${candidate.candidate} — ${candidate.confidence} confidence`} subtitle={`Score ${candidate.score.toFixed(3)}`}>

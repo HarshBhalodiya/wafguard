@@ -42,12 +42,12 @@ def test_classify_die_grid_returns_full_contract(edge_ring_die_grid):
 
 
 def test_classify_wafer_by_id_updates_the_document(db):
-    wafer = db.wafers.find_one({"lot_id": "LOT_10901"})
-    assert wafer is not None, "expected LOT_10901 to have seeded wafers"
+    wafer = db.wafers.find_one({"defect_density": {"$gt": 0.01}})
+    assert wafer is not None, "expected at least one wafer with a materializable defect density"
 
     result = defect_service.classify_wafer_by_id(db, wafer["wafer_id"])
     assert result["wafer_id"] == wafer["wafer_id"]
-    assert result["lot_id"] == "LOT_10901"
+    assert result["lot_id"] == wafer["lot_id"]
 
     updated = db.wafers.find_one({"wafer_id": wafer["wafer_id"]})
     assert updated["wafer_map_pattern"] == result["predicted_pattern"]

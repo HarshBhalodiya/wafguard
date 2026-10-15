@@ -1,0 +1,55 @@
+{
+  "version": "1.0.0",
+  "_doc": [
+    "What-if change limits (Phase 6, brief P5). A requested change is BLOCKED (HTTP 422) when it",
+    "falls outside the recipe window or the physical limit of the parameter.",
+    "recipe_window = the in-spec band of the synthetic process window (app/simulator/process_physics.py",
+    "CHANNEL_SPECS center +/- half_width) - the setpoints a recipe is allowed to run at.",
+    "physical = the hardware range the synthetic generator can ever produce (center +/- 3 half-widths,",
+    "the generator's clip range) - values outside it cannot occur at all.",
+    "These are SYNTHETIC reference values, chosen to be plausible for a generic 300mm etch step."
+  ],
+  "parameters": {
+    "temperature": {
+      "unit": "degC",
+      "feature": "temperature_mean",
+      "kind": "sensor_level",
+      "recipe_window": [430.0, 445.0],
+      "physical": [415.0, 460.0]
+    },
+    "pressure": {
+      "unit": "Torr",
+      "feature": "pressure_mean",
+      "kind": "sensor_level",
+      "recipe_window": [2.4, 3.1],
+      "physical": [1.7, 3.8]
+    },
+    "rf_power": {
+      "unit": "W",
+      "feature": "rf_power_mean",
+      "kind": "sensor_level",
+      "recipe_window": [840.0, 875.0],
+      "physical": [805.0, 910.0]
+    },
+    "gas_flow": {
+      "unit": "sccm",
+      "feature": "gas_flow_mean",
+      "kind": "sensor_level",
+      "recipe_window": [45.0, 58.0],
+      "physical": [32.0, 71.0]
+    },
+    "maintenance_days_since_last": {
+      "unit": "days",
+      "feature": "maintenance_days_since_last",
+      "kind": "context",
+      "recipe_window": [0.0, 365.0],
+      "physical": [0.0, 999.0],
+      "note": "0 = 'preventive maintenance done right before this lot'."
+    }
+  },
+  "not_overridable": {
+    "etch_time": "Constant in the v2 synthetic data (no variation) - the model cannot respond to it.",
+    "voltage": "Constant in the v2 synthetic data (no variation) - the model cannot respond to it.",
+    "current": "Constant in the v2 synthetic data (no variation) - the model cannot respond to it."
+  }
+}

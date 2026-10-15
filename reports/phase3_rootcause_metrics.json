@@ -1,0 +1,117 @@
+{
+  "engine": "rootcause_multi_signal_v2",
+  "pattern_table_version": "1.0.0",
+  "pattern_table_artifact_matches_fresh_build": true,
+  "split": "chronological test split (last 15% of lots by process_start)",
+  "n_faulty_test_lots": 240,
+  "n_scored": 182,
+  "n_unmappable": {
+    "contamination_event": 32,
+    "sensor_dropout": 26
+  },
+  "overall": {
+    "new": {
+      "n": 182,
+      "top1": 0.7088,
+      "top3": 0.8022,
+      "top5": 0.8407,
+      "mrr": 0.7722
+    },
+    "baseline": {
+      "n": 182,
+      "top1": 0.7198,
+      "top3": 0.7418,
+      "top5": 1.0,
+      "mrr": 0.7804
+    }
+  },
+  "per_fault": {
+    "chamber_pressure_instability": {
+      "new": {
+        "n": 32,
+        "top1": 0.9375,
+        "top3": 1.0,
+        "top5": 1.0,
+        "mrr": 0.9688
+      },
+      "baseline": {
+        "n": 32,
+        "top1": 1.0,
+        "top3": 1.0,
+        "top5": 1.0,
+        "mrr": 1.0
+      }
+    },
+    "equipment_degradation": {
+      "new": {
+        "n": 51,
+        "top1": 0.0,
+        "top3": 0.2941,
+        "top5": 0.4314,
+        "mrr": 0.2067
+      },
+      "baseline": {
+        "n": 51,
+        "top1": 0.0,
+        "top3": 0.0784,
+        "top5": 1.0,
+        "mrr": 0.2163
+      }
+    },
+    "recipe_transition_problem": {
+      "new": {
+        "n": 24,
+        "top1": 1.0,
+        "top3": 1.0,
+        "top5": 1.0,
+        "mrr": 1.0
+      },
+      "baseline": {
+        "n": 24,
+        "top1": 1.0,
+        "top3": 1.0,
+        "top5": 1.0,
+        "mrr": 1.0
+      }
+    },
+    "rf_power_drift": {
+      "new": {
+        "n": 44,
+        "top1": 1.0,
+        "top3": 1.0,
+        "top5": 1.0,
+        "mrr": 1.0
+      },
+      "baseline": {
+        "n": 44,
+        "top1": 1.0,
+        "top3": 1.0,
+        "top5": 1.0,
+        "mrr": 1.0
+      }
+    },
+    "sensor_drift": {
+      "new": {
+        "n": 31,
+        "top1": 1.0,
+        "top3": 1.0,
+        "top5": 1.0,
+        "mrr": 1.0
+      },
+      "baseline": {
+        "n": 31,
+        "top1": 1.0,
+        "top3": 1.0,
+        "top5": 1.0,
+        "mrr": 1.0
+      }
+    }
+  },
+  "latency_ms": {
+    "p50": 2807.5,
+    "p95": 3498.3,
+    "mean": 2939.4
+  },
+  "baseline_definition": "rank by (shap_attribution + parameter_deviation) \u2014 the pre-upgrade core ranking",
+  "note": "SYNTHETIC data; 'acceptable candidates' per fault are documented in app/evaluation/fault_mapping.py."
+}

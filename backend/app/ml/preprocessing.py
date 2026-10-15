@@ -26,6 +26,12 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
+from app.features.tabular import (  # noqa: F401  (re-exported for callers)
+    EXTENDED_NUMERIC_FEATURE_COLUMNS,
+    equipment_context_features,
+    sensor_shape_features,
+)
+
 SENSOR_TRACKED_PARAMS = ["temperature", "rf_power", "pressure", "gas_flow"]
 DIRECT_PARAMS = ["etch_time", "voltage", "current"]
 CATEGORICAL_COLUMNS = ["equipment", "process_step"]
@@ -37,6 +43,7 @@ NUMERIC_FEATURE_COLUMNS = (
     + [f"{p}_drift" for p in SENSOR_TRACKED_PARAMS]
     + DIRECT_PARAMS
     + ["previous_lot_yield", "previous_5_lot_yield", "equipment_failure_count", "maintenance_days_since_last"]
+    + list(EXTENDED_NUMERIC_FEATURE_COLUMNS)  # Phase 2A extensions (D-016)
 )
 
 
@@ -118,8 +125,17 @@ def build_lot_features_bulk(
     sensor_features = _sensor_aggregates(sensor_df)
     history_features = _equipment_history_features(lots_df, maintenance_df)
     direct_params = process_df.set_index("lot_id")[DIRECT_PARAMS]
+    shape_features = sensor_shape_features(sensor_df)
+    context_features = equipment_context_features(lots_df)
 
-    features = lots_df.set_index("lot_id").join(sensor_features).join(direct_params).join(history_features)
+    features = (
+        lots_df.set_index("lot_id")
+        .join(sensor_features)
+        .join(direct_params)
+        .join(history_features)
+        .join(shape_features)
+        .join(context_features)
+    )
     features = features.reset_index().sort_values("process_start").reset_index(drop=True)
 
     keep_cols = ["lot_id", "process_start", "equipment", "process_step", "yield", "is_low_yield"] + NUMERIC_FEATURE_COLUMNS

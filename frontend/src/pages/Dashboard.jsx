@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useApi } from "../hooks/useApi";
 import { get } from "../services/api";
 import { LoadingState, ErrorState } from "../components/LoadingState.jsx";
@@ -54,7 +55,10 @@ export default function Dashboard() {
         <Panel title="Top Root Causes" subtitle="Across current at-risk lots">
           <RootCauseChart candidates={data.top_root_causes.map((c) => ({ candidate: c.candidate, score: c.share }))} />
         </Panel>
-        <Panel title="Recent Alerts">
+        <Panel
+          title="Recent Alerts"
+          action={<Link to="/alerts" className="text-xs text-brand hover:underline">View all &amp; triage →</Link>}
+        >
           <AlertPanel alerts={data.recent_alerts} />
         </Panel>
       </div>

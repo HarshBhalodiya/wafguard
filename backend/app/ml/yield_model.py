@@ -96,15 +96,16 @@ def train_regressor(X_train: pd.DataFrame, y_train: np.ndarray) -> dict:
 # ---------------------------------------------------------------------------
 # Evaluation — every number here is measured on held-out data, never assumed.
 # ---------------------------------------------------------------------------
-def evaluate_classifier(model, X_test: pd.DataFrame, y_test: np.ndarray) -> dict:
+def evaluate_classifier(model, X_test: pd.DataFrame, y_test: np.ndarray, threshold: float = 0.5) -> dict:
     proba = model.predict_proba(X_test)[:, 1]
-    preds = (proba >= 0.5).astype(int)
+    preds = (proba >= threshold).astype(int)
 
     n_pos, n_neg = int(y_test.sum()), int(len(y_test) - y_test.sum())
     metrics = {
         "precision": float(precision_score(y_test, preds, zero_division=0)),
         "recall": float(recall_score(y_test, preds, zero_division=0)),
         "f1": float(f1_score(y_test, preds, zero_division=0)),
+        "decision_threshold": float(threshold),
         "class_balance": {"positive": n_pos, "negative": n_neg, "positive_rate": round(n_pos / max(1, len(y_test)), 4)},
         "confusion_matrix": confusion_matrix(y_test, preds).tolist(),
         "n_test_samples": int(len(y_test)),

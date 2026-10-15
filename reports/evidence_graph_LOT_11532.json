@@ -1,0 +1,348 @@
+{
+  "graph_version": "1.0.0",
+  "rules_version": "1.0.0",
+  "rules_source": "backend/app/rootcause/graph_rules.json",
+  "lot_id": "LOT_11532",
+  "dominant_wafer_pattern": "None",
+  "nodes": [
+    {
+      "id": "yield_loss",
+      "type": "yield_loss",
+      "label": "Yield outcome on LOT_11532",
+      "source": "measured",
+      "value": 83.3,
+      "detail": "actual lot yield 83.3% \u2014 below the 85.0% low-yield threshold, so a yield loss was observed",
+      "evidence_ids": [
+        "lot:LOT_11532:yield"
+      ]
+    },
+    {
+      "id": "equipment:ETCH_007",
+      "type": "equipment",
+      "label": "ETCH_007",
+      "source": "measured",
+      "value": null,
+      "detail": "process step LITHO",
+      "evidence_ids": [
+        "lot:LOT_11532:equipment"
+      ]
+    },
+    {
+      "id": "chamber:ETCH_007_CH2",
+      "type": "chamber",
+      "label": "ETCH_007_CH2",
+      "source": "measured",
+      "value": null,
+      "detail": "chamber of ETCH_007",
+      "evidence_ids": [
+        "lot:LOT_11532:chamber"
+      ]
+    },
+    {
+      "id": "sensor_issue:pressure",
+      "type": "sensor_issue",
+      "label": "Pressure",
+      "source": "measured",
+      "value": 0.5013,
+      "detail": "MEDIUM confidence \u00b7 score 0.501",
+      "evidence_ids": [
+        "rc:LOT_11532:pressure:0",
+        "rc:LOT_11532:pressure:1",
+        "rc:LOT_11532:pressure:2",
+        "rc:LOT_11532:pressure:3"
+      ]
+    },
+    {
+      "id": "mechanism:chamber_pressure_instability",
+      "type": "mechanism",
+      "label": "Chamber pressure instability driving particle generation",
+      "source": "rule",
+      "value": null,
+      "detail": "mechanisms.MECHANISMS['chamber_pressure_instability'] pushes pressure, paints Edge-Ring (edge_bias 0.65), particle_multiplier 7.0; yield_loss_pp 10.0 \u2014 the strongest edge-biased mechanism in the table.",
+      "evidence_ids": [
+        "rule:pressure:chamber-pressure-instability"
+      ]
+    },
+    {
+      "id": "pattern:Edge-Ring",
+      "type": "defect_pattern",
+      "label": "Edge-Ring",
+      "source": "rule",
+      "value": 0.0826,
+      "detail": "predicted by rule, not observed on this lot (defect density 0.083)",
+      "evidence_ids": [
+        "rule:pressure:chamber-pressure-instability"
+      ]
+    },
+    {
+      "id": "sensor_issue:temperature",
+      "type": "sensor_issue",
+      "label": "Temperature",
+      "source": "measured",
+      "value": 0.2193,
+      "detail": "LOW confidence \u00b7 score 0.219",
+      "evidence_ids": [
+        "rc:LOT_11532:temperature:0",
+        "rc:LOT_11532:temperature:1",
+        "rc:LOT_11532:temperature:2",
+        "rc:LOT_11532:temperature:3"
+      ]
+    },
+    {
+      "id": "mechanism:thermal_particle_condensation",
+      "type": "mechanism",
+      "label": "Thermal excursion with in-chamber particle condensation",
+      "source": "rule",
+      "value": null,
+      "detail": "No dedicated temperature fault exists; the table's Donut-painting mechanisms (sensor_drift yield_loss_pp 7.0 and contamination_event yield_loss_pp 13.0) are the thermal/condensation family, so a temperature excursion is mapped to them with a lower edge strength than the direct channels.",
+      "evidence_ids": [
+        "rule:temperature:thermal-particle-condensation"
+      ]
+    },
+    {
+      "id": "pattern:Donut",
+      "type": "defect_pattern",
+      "label": "Donut",
+      "source": "rule",
+      "value": 0.0826,
+      "detail": "predicted by rule, not observed on this lot (defect density 0.083)",
+      "evidence_ids": [
+        "rule:temperature:thermal-particle-condensation"
+      ]
+    },
+    {
+      "id": "pattern:Edge-Loc",
+      "type": "defect_pattern",
+      "label": "Edge-Loc",
+      "source": "rule",
+      "value": 0.0826,
+      "detail": "predicted by rule, not observed on this lot (defect density 0.083)",
+      "evidence_ids": [
+        "rule:temperature:thermal-particle-condensation"
+      ]
+    },
+    {
+      "id": "sensor_issue:gas-flow",
+      "type": "sensor_issue",
+      "label": "Gas Flow",
+      "source": "measured",
+      "value": 0.1921,
+      "detail": "LOW confidence \u00b7 score 0.192",
+      "evidence_ids": [
+        "rc:LOT_11532:gas-flow:0",
+        "rc:LOT_11532:gas-flow:1",
+        "rc:LOT_11532:gas-flow:2",
+        "rc:LOT_11532:gas-flow:3"
+      ]
+    },
+    {
+      "id": "mechanism:recipe_transition_problem",
+      "type": "mechanism",
+      "label": "Recipe-transition stress with a gas-flow offset",
+      "source": "rule",
+      "value": null,
+      "detail": "FAULT_SEVERITY offsets gas_flow first (and pressure second) for recipe_transition_problem, which paints Loc (edge_bias 0.20, scratch_bias 0.10); yield_loss_pp 6.5.",
+      "evidence_ids": [
+        "rule:gas-flow:recipe-transition-stress"
+      ]
+    },
+    {
+      "id": "pattern:Loc",
+      "type": "defect_pattern",
+      "label": "Loc",
+      "source": "rule",
+      "value": 0.0826,
+      "detail": "predicted by rule, not observed on this lot (defect density 0.083)",
+      "evidence_ids": [
+        "rule:gas-flow:recipe-transition-stress"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "sensor_issue:pressure->mechanism:chamber_pressure_instability",
+      "source": "sensor_issue:pressure",
+      "target": "mechanism:chamber_pressure_instability",
+      "strength": 0.4261,
+      "kind": "rule",
+      "evidence_ids": [
+        "rc:LOT_11532:pressure:0",
+        "rc:LOT_11532:pressure:1",
+        "rc:LOT_11532:pressure:2",
+        "rc:LOT_11532:pressure:3",
+        "rule:pressure:chamber-pressure-instability"
+      ],
+      "label": "candidate score 0.501 \u00d7 rule strength 0.85"
+    },
+    {
+      "id": "mechanism:chamber_pressure_instability->pattern:Edge-Ring",
+      "source": "mechanism:chamber_pressure_instability",
+      "target": "pattern:Edge-Ring",
+      "strength": 0.34,
+      "kind": "rule",
+      "evidence_ids": [
+        "rule:pressure:chamber-pressure-instability"
+      ],
+      "label": "predicted by rule; not corroborated by this lot's inspection"
+    },
+    {
+      "id": "equipment:ETCH_007->sensor_issue:temperature",
+      "source": "equipment:ETCH_007",
+      "target": "sensor_issue:temperature",
+      "strength": 1.0,
+      "kind": "measured",
+      "evidence_ids": [
+        "rc:LOT_11532:temperature:2"
+      ],
+      "label": "measured equipment association for Temperature"
+    },
+    {
+      "id": "chamber:ETCH_007_CH2->sensor_issue:temperature",
+      "source": "chamber:ETCH_007_CH2",
+      "target": "sensor_issue:temperature",
+      "strength": 1.0,
+      "kind": "measured",
+      "evidence_ids": [
+        "rc:LOT_11532:temperature:2"
+      ],
+      "label": "measured equipment association for Temperature"
+    },
+    {
+      "id": "sensor_issue:temperature->mechanism:thermal_particle_condensation",
+      "source": "sensor_issue:temperature",
+      "target": "mechanism:thermal_particle_condensation",
+      "strength": 0.1316,
+      "kind": "rule",
+      "evidence_ids": [
+        "rc:LOT_11532:temperature:0",
+        "rc:LOT_11532:temperature:1",
+        "rc:LOT_11532:temperature:2",
+        "rc:LOT_11532:temperature:3",
+        "rule:temperature:thermal-particle-condensation"
+      ],
+      "label": "candidate score 0.219 \u00d7 rule strength 0.6"
+    },
+    {
+      "id": "mechanism:thermal_particle_condensation->pattern:Donut",
+      "source": "mechanism:thermal_particle_condensation",
+      "target": "pattern:Donut",
+      "strength": 0.24,
+      "kind": "rule",
+      "evidence_ids": [
+        "rule:temperature:thermal-particle-condensation"
+      ],
+      "label": "predicted by rule; not corroborated by this lot's inspection"
+    },
+    {
+      "id": "mechanism:thermal_particle_condensation->pattern:Edge-Loc",
+      "source": "mechanism:thermal_particle_condensation",
+      "target": "pattern:Edge-Loc",
+      "strength": 0.24,
+      "kind": "rule",
+      "evidence_ids": [
+        "rule:temperature:thermal-particle-condensation"
+      ],
+      "label": "predicted by rule; not corroborated by this lot's inspection"
+    },
+    {
+      "id": "equipment:ETCH_007->sensor_issue:gas-flow",
+      "source": "equipment:ETCH_007",
+      "target": "sensor_issue:gas-flow",
+      "strength": 1.0,
+      "kind": "measured",
+      "evidence_ids": [
+        "rc:LOT_11532:gas-flow:2"
+      ],
+      "label": "measured equipment association for Gas Flow"
+    },
+    {
+      "id": "chamber:ETCH_007_CH2->sensor_issue:gas-flow",
+      "source": "chamber:ETCH_007_CH2",
+      "target": "sensor_issue:gas-flow",
+      "strength": 1.0,
+      "kind": "measured",
+      "evidence_ids": [
+        "rc:LOT_11532:gas-flow:2"
+      ],
+      "label": "measured equipment association for Gas Flow"
+    },
+    {
+      "id": "sensor_issue:gas-flow->mechanism:recipe_transition_problem",
+      "source": "sensor_issue:gas-flow",
+      "target": "mechanism:recipe_transition_problem",
+      "strength": 0.1345,
+      "kind": "rule",
+      "evidence_ids": [
+        "rc:LOT_11532:gas-flow:0",
+        "rc:LOT_11532:gas-flow:1",
+        "rc:LOT_11532:gas-flow:2",
+        "rc:LOT_11532:gas-flow:3",
+        "rule:gas-flow:recipe-transition-stress"
+      ],
+      "label": "candidate score 0.192 \u00d7 rule strength 0.7"
+    },
+    {
+      "id": "mechanism:recipe_transition_problem->pattern:Loc",
+      "source": "mechanism:recipe_transition_problem",
+      "target": "pattern:Loc",
+      "strength": 0.28,
+      "kind": "rule",
+      "evidence_ids": [
+        "rule:gas-flow:recipe-transition-stress"
+      ],
+      "label": "predicted by rule; not corroborated by this lot's inspection"
+    },
+    {
+      "id": "pattern:Edge-Ring->yield_loss",
+      "source": "pattern:Edge-Ring",
+      "target": "yield_loss",
+      "strength": 0.0826,
+      "kind": "measured",
+      "evidence_ids": [
+        "lot:LOT_11532:yield",
+        "lot:LOT_11532:defect_density"
+      ],
+      "label": "measured defect density 0.083, yield 83.3% vs threshold 85.0%"
+    },
+    {
+      "id": "pattern:Donut->yield_loss",
+      "source": "pattern:Donut",
+      "target": "yield_loss",
+      "strength": 0.0826,
+      "kind": "measured",
+      "evidence_ids": [
+        "lot:LOT_11532:yield",
+        "lot:LOT_11532:defect_density"
+      ],
+      "label": "measured defect density 0.083, yield 83.3% vs threshold 85.0%"
+    },
+    {
+      "id": "pattern:Edge-Loc->yield_loss",
+      "source": "pattern:Edge-Loc",
+      "target": "yield_loss",
+      "strength": 0.0826,
+      "kind": "measured",
+      "evidence_ids": [
+        "lot:LOT_11532:yield",
+        "lot:LOT_11532:defect_density"
+      ],
+      "label": "measured defect density 0.083, yield 83.3% vs threshold 85.0%"
+    },
+    {
+      "id": "pattern:Loc->yield_loss",
+      "source": "pattern:Loc",
+      "target": "yield_loss",
+      "strength": 0.0826,
+      "kind": "measured",
+      "evidence_ids": [
+        "lot:LOT_11532:yield",
+        "lot:LOT_11532:defect_density"
+      ],
+      "label": "measured defect density 0.083, yield 83.3% vs threshold 85.0%"
+    }
+  ],
+  "gaps": [
+    "this lot has no dominant observed wafer pattern (no persisted inspection result), so every mechanism\u2192pattern link is rule-only and falls back to the discounted rule strength \u2014 no inspection evidence corroborates it."
+  ],
+  "disclaimer": "Candidate links, not confirmed causes. Edges marked kind='rule' come from the readable rules file; edges marked kind='measured' come from this lot's own data. Synthetic dataset."
+}

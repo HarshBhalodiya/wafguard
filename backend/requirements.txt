@@ -22,6 +22,13 @@ pandas>=2.2
 scikit-learn>=1.5
 xgboost>=2.1
 shap>=0.46
+optuna>=4.0  # hyperparameter search (Phase 2A)
+scipy>=1.13  # KS test for drift detection (Phase 7)
+pyyaml>=6.0  # engineering knowledge base file (Phase 5)
+mlflow-skinny>=2.16  # experiment tracking (Phase 7) ...
+sqlalchemy>=1.4,<3   # ... with a local SQLite store (MLflow 3 refuses the plain-file store)
+alembic>=1.11,<2
+matplotlib>=3.9  # calibration reliability + confusion-matrix plots
 joblib>=1.4
 pyarrow>=17.0
 

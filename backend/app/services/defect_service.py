@@ -1,8 +1,12 @@
 """
-Ties the vision pipeline together (spec section 13/18-20): OpenCV
-preprocessing -> CNN inference -> Grad-CAM -> spatial analysis. Used both
-for classifying an existing wafer already in the database and for an
-ad-hoc uploaded image on the Defect Analyzer page.
+Ties the vision pipeline together: deterministic wafer-map
+materialization -> OpenCV preprocessing -> CNN inference -> Grad-CAM ->
+spatial analysis. Used both for classifying an existing wafer already in
+the database and for an ad-hoc uploaded image on the Defect Analyzer page.
+
+Since schema v2, die grids are materialized deterministically from the
+lot's causal record (signature + density) instead of being stored in
+Mongo — see app.services.wafer_map_store.
 """
 import io
 from dataclasses import asdict
@@ -17,6 +21,7 @@ from app.config import WAFER_PATTERN_CLASSES, get_settings
 from app.data.preprocessing.wafer_preprocessor import compute_spatial_stats, image_to_die_grid, normalize_for_cnn
 from app.database.repositories.wafer_repository import WaferRepository
 from app.ml.wafer_model import grad_cam, load_latest_wafer_model, predict_batch
+from app.services.wafer_map_store import materialize_die_grid
 from app.utils.exceptions import ModelUnavailableError, NotFoundError, UnsupportedFileError
 
 _BUNDLE_CACHE: dict = {}
@@ -83,10 +88,12 @@ def classify_wafer_by_id(db, wafer_id: str) -> dict:
     wafer = wafer_repo.get_by_wafer_id(wafer_id)
     if not wafer:
         raise NotFoundError(f"Wafer {wafer_id} was not found.")
-    if not wafer.get("die_grid"):
-        raise NotFoundError(f"Wafer {wafer_id} has no stored wafer map to classify.")
 
-    result = classify_die_grid(np.array(wafer["die_grid"]))
+    die_grid = _die_grid_for(wafer)
+    if die_grid is None:
+        raise NotFoundError(f"Wafer {wafer_id} has no materializable wafer map (missing lot link or density).")
+
+    result = classify_die_grid(die_grid)
     wafer_repo.update_one(
         {"wafer_id": wafer_id},
         {"wafer_map_pattern": result["predicted_pattern"], "wafer_map_confidence": result["confidence"]},
@@ -94,11 +101,25 @@ def classify_wafer_by_id(db, wafer_id: str) -> dict:
     result.update(
         {
             "wafer_id": wafer_id,
-            "lot_id": wafer["lot_id"],
-            "data_source": wafer.get("wafer_map_source", "wm811k_synthetic"),
+            "lot_id": wafer.get("lot_id"),
+            "true_pattern": wafer.get("true_pattern"),
+            "data_source": "wm811k_synthetic",
         }
     )
     return result
+
+
+def _die_grid_for(wafer: dict) -> Optional[np.ndarray]:
+    """Materialize a wafer's deterministic die grid from its causal record."""
+    pattern = wafer.get("true_pattern") or wafer.get("synthetic_true_pattern") or "None"
+    density = wafer.get("defect_density")
+    if density is None:
+        return None
+    return materialize_die_grid(
+        wafer_id=wafer["wafer_id"],
+        pattern=pattern,
+        defect_density=float(density),
+    )
 
 
 def analyze_uploaded_image(image_bytes: bytes, filename: Optional[str] = None) -> dict:
@@ -120,7 +141,7 @@ def analyze_uploaded_image(image_bytes: bytes, filename: Optional[str] = None) -
             "note": (
                 "Classification is derived from the uploaded image via grayscale + circular-mask + "
                 "Otsu thresholding, not a fab-specific imaging standard. This is wafer-map pattern "
-                "analysis, not microscope defect-image analysis (spec section 18)."
+                "analysis, not microscope defect-image analysis."
             ),
             "data_source": "wm811k_synthetic",
         }

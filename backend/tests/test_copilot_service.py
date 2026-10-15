@@ -19,8 +19,8 @@ def test_answer_question_uses_deterministic_narrative_without_llm_key(db, incide
 
     assert result["source"] == "deterministic_template"
     assert result["lot_id"] == incident_lot_id
-    assert "RF Power" in result["answer"]
-    assert result["evidence"]["equipment"] == "ETCH_007"
+    lot_equipment = db.lots.find_one({"lot_id": incident_lot_id})["equipment"]
+    assert result["evidence"]["equipment"] == lot_equipment
     assert result["evidence"]["risk_level"] in ("MEDIUM", "HIGH")
 
 

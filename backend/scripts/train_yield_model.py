@@ -24,7 +24,9 @@ Usage:
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
+from xgboost import XGBClassifier, XGBRegressor
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -32,11 +34,13 @@ from app.config import get_settings  # noqa: E402
 from app.data.loaders.secom_loader import load_secom  # noqa: E402
 from app.data.preprocessing.secom_preprocessor import build_secom_feature_matrix  # noqa: E402
 from app.database import mongodb  # noqa: E402
-from app.database.repositories.alert_repository import AlertRepository  # noqa: E402
 from app.database.repositories.equipment_repository import EquipmentRepository  # noqa: E402
 from app.database.repositories.lot_repository import LotRepository  # noqa: E402
 from app.database.repositories.model_version_repository import ModelVersionRepository  # noqa: E402
 from app.database.repositories.prediction_repository import PredictionRepository  # noqa: E402
+from app.ml.baselines import fit_classifier_baselines, fit_regressor_baselines  # noqa: E402
+from app.ml.calibration import calibrate_classifier, expected_calibration_error, find_best_threshold  # noqa: E402
+from app.ml.hpo import optimize_xgb_classifier, optimize_xgb_regressor  # noqa: E402
 from app.ml.preprocessing import (  # noqa: E402
     NUMERIC_FEATURE_COLUMNS,
     build_lot_features_bulk,
@@ -44,6 +48,7 @@ from app.ml.preprocessing import (  # noqa: E402
     single_row_to_model_matrix,
     to_model_matrix,
 )
+from app.ops.tracking import log_run  # noqa: E402
 from app.ml.yield_model import (  # noqa: E402
     ModelBundle,
     evaluate_classifier,
@@ -52,13 +57,14 @@ from app.ml.yield_model import (  # noqa: E402
     train_classifier,
     train_regressor,
 )
+from app.services import alert_dispatch_service  # noqa: E402
 from app.services.risk_service import compute_historical_defect_risk, compute_risk  # noqa: E402
 from app.utils.exceptions import DatabaseUnavailableError, DatasetUnavailableError  # noqa: E402
 from app.utils.logging import get_logger  # noqa: E402
 from app.utils.time import utc_now  # noqa: E402
 
 logger = get_logger(__name__)
-MODEL_VERSION = "1.0.0"
+MODEL_VERSION = "2.0.0"
 
 
 def train_secom_model(settings) -> ModelBundle | None:
@@ -108,14 +114,53 @@ def train_secom_model(settings) -> ModelBundle | None:
     return bundle
 
 
-def load_synthetic_csvs(settings) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def load_synthetic_tables(settings) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Load the schema-v2 synthetic tables (CSVs + telemetry parquet).
+
+    Accepts both layouts so the script works before and after the Phase 1
+    regeneration: v2 (lots.csv + sensor_data.parquet) is preferred; the v1
+    layout (lots.csv + sensor_data.csv + process_parameters.csv) still loads.
+    """
     data_dir = settings.resolve_path(settings.synthetic_data_path)
+    if (data_dir / "sensor_data.parquet").exists():
+        lots = pd.read_csv(data_dir / "lots.csv")
+        sensor = pd.read_parquet(data_dir / "sensor_data.parquet")
+        maintenance = pd.read_csv(data_dir / "maintenance.csv")
+
+        # v2 lots.csv carries equipment_id; derive the v1-style view the
+        # feature builder expects (equipment + scalar process params).
+        lots = lots.rename(columns={"equipment_id": "equipment"})
+        lots["node"] = "synthetic"
+        lots["is_demo_incident"] = False
+
+        # Scalar per-run parameters = per-lot telemetry means (plus direct
+        # params derived from their channels). Downsample telemetry to
+        # per-lot/parameter means to form `process_parameters`.
+        agg = (
+            sensor.groupby(["lot_id", "parameter"])["value"].mean().unstack("parameter").reset_index()
+        )
+        agg = agg.rename(
+            columns={
+                "pressure": "pressure",
+                "temperature": "temperature",
+                "rf_power": "rf_power",
+                "gas_flow": "gas_flow",
+            }
+        )
+        for col in ("etch_time", "voltage", "current"):
+            if col not in agg.columns:
+                agg[col] = {"etch_time": 35.0, "voltage": 220.0, "current": 11.0}[col]
+        process = agg
+        sensor_for_features = sensor.rename(columns={"ts_index": "reading_index"})
+        return lots, process, sensor_for_features, maintenance
+
+    # v1 fallback
     required = ["lots.csv", "process_parameters.csv", "sensor_data.csv", "maintenance.csv"]
     missing = [name for name in required if not (data_dir / name).exists()]
     if missing:
         raise SystemExit(
             f"Missing synthetic data files {missing} in {data_dir} - "
-            "run 'python scripts/generate_synthetic_data.py' first."
+            "run 'python scripts/build_dataset.py' first."
         )
     return (
         pd.read_csv(data_dir / "lots.csv"),
@@ -125,8 +170,31 @@ def load_synthetic_csvs(settings) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFr
     )
 
 
-def train_lot_yield_models(settings) -> tuple[ModelBundle, ModelBundle, pd.DataFrame, list]:
-    lots_df, process_df, sensor_df, maintenance_df = load_synthetic_csvs(settings)
+def train_lot_yield_models(
+    settings,
+    tables: dict | None = None,
+    n_hpo_trials: int = 40,
+    calibration_method: str = "isotonic",
+) -> tuple[ModelBundle, ModelBundle, pd.DataFrame, list]:
+    """Train on the v2 tables if given in-memory (tests), else load from disk.
+
+    Phase 2A additions: fixed-budget Optuna HPO on the validation split,
+    probability calibration (prefit on validation), and simple baseline
+    models evaluated on the same chronological test split.
+    """
+    if tables is not None:
+        lots_df = tables["lots"].rename(columns={"equipment_id": "equipment"})
+        lots_df["node"] = "synthetic"
+        lots_df["is_demo_incident"] = False
+        sensor_df = tables["sensor_data"].rename(columns={"ts_index": "reading_index"})
+        maintenance_df = tables["maintenance"]
+        agg = tables["sensor_data"].groupby(["lot_id", "parameter"])["value"].mean().unstack("parameter").reset_index()
+        for col in ("etch_time", "voltage", "current"):
+            if col not in agg.columns:
+                agg[col] = {"etch_time": 35.0, "voltage": 220.0, "current": 11.0}[col]
+        process_df = agg
+    else:
+        lots_df, process_df, sensor_df, maintenance_df = load_synthetic_tables(settings)
     features_df = build_lot_features_bulk(lots_df, process_df, sensor_df, maintenance_df)
 
     train_df, val_df, test_df = chronological_split(features_df)
@@ -139,11 +207,31 @@ def train_lot_yield_models(settings) -> tuple[ModelBundle, ModelBundle, pd.DataF
     X_val, _ = to_model_matrix(val_df, known_dummy_columns=dummy_columns)
     X_test, _ = to_model_matrix(test_df, known_dummy_columns=dummy_columns)
 
-    reg_models = train_regressor(X_train, train_df["yield"].to_numpy())
+    y_reg_train = train_df["yield"].to_numpy()
+    y_reg_val = val_df["yield"].to_numpy()
+    y_reg_test = test_df["yield"].to_numpy()
+    y_clf_train = train_df["is_low_yield"].to_numpy()
+    y_clf_val = val_df["is_low_yield"].to_numpy()
+    y_clf_test = test_df["is_low_yield"].to_numpy()
+
+    # ---- Regressor: RF baseline, Optuna-tuned XGBoost production ----
+    reg_models = train_regressor(X_train, y_reg_train)
+    reg_best_params, reg_hpo = optimize_xgb_regressor(X_train, y_reg_train, X_val, y_reg_val, n_trials=n_hpo_trials)
+    if reg_best_params:
+        reg_models["production"] = XGBRegressor(
+            **reg_best_params, random_state=42, n_jobs=-1
+        )
+        reg_models["production"].fit(X_train, y_reg_train)
+
     reg_metrics = {
-        "validation": evaluate_regressor(reg_models["production"], X_val, val_df["yield"].to_numpy()),
-        "baseline": evaluate_regressor(reg_models["baseline"], X_test, test_df["yield"].to_numpy()),
-        "production": evaluate_regressor(reg_models["production"], X_test, test_df["yield"].to_numpy()),
+        "validation": evaluate_regressor(reg_models["production"], X_val, y_reg_val),
+        "baseline": evaluate_regressor(reg_models["baseline"], X_test, y_reg_test),
+        "production": evaluate_regressor(reg_models["production"], X_test, y_reg_test),
+        "hpo": reg_hpo,
+        "baselines": {
+            name: evaluate_regressor(model, X_test, y_reg_test)
+            for name, model in fit_regressor_baselines(X_train, y_reg_train).items()
+        },
     }
     reg_bundle = ModelBundle(
         model_name="lot_yield_regressor",
@@ -158,18 +246,58 @@ def train_lot_yield_models(settings) -> tuple[ModelBundle, ModelBundle, pd.DataF
     save_bundle(reg_bundle, settings.resolve_path(settings.model_dir))
     print(f"[LotYield regressor] production test metrics: {reg_metrics['production']}")
 
-    clf_models = train_classifier(X_train, train_df["is_low_yield"].to_numpy())
+    # ---- Classifier: RF baseline, Optuna-tuned + calibrated XGBoost ----
+    clf_models = train_classifier(X_train, y_clf_train)
+    clf_best_params, clf_hpo = optimize_xgb_classifier(X_train, y_clf_train, X_val, y_clf_val, n_trials=n_hpo_trials)
+    if clf_best_params:
+        clf_models["production"] = XGBClassifier(
+            **clf_best_params,
+            scale_pos_weight=(len(y_clf_train) - y_clf_train.sum()) / max(1, int(y_clf_train.sum())),
+            eval_metric="logloss",
+            random_state=42,
+            n_jobs=-1,
+        )
+        clf_models["production"].fit(X_train, y_clf_train)
+
+    calibration_info: dict = {"method": None}
+    production_clf = clf_models["production"]
+    decision_threshold = 0.5
+    if calibration_method and len(np.unique(y_clf_val)) > 1:
+        ece_before = expected_calibration_error(y_clf_val, production_clf.predict_proba(X_val)[:, 1])
+        production_clf = calibrate_classifier(production_clf, X_val, y_clf_val, method=calibration_method)
+        ece_after = expected_calibration_error(y_clf_val, production_clf.predict_proba(X_val)[:, 1])
+        # Calibration rescales probabilities, so 0.5 is no longer the same
+        # operating point — re-pick the threshold on validation (never test).
+        decision_threshold = find_best_threshold(y_clf_val, production_clf.predict_proba(X_val)[:, 1])
+        calibration_info = {
+            "method": calibration_method,
+            "val_ece_before": ece_before,
+            "val_ece_after": ece_after,
+            "decision_threshold": decision_threshold,
+        }
+        print(
+            f"[LotYield classifier] calibration ({calibration_method}): val ECE {ece_before:.4f} -> {ece_after:.4f} "
+            f"| decision threshold {decision_threshold:.3f}"
+        )
+    clf_models["production"] = production_clf
+
     clf_metrics = {
-        "validation": evaluate_classifier(clf_models["production"], X_val, val_df["is_low_yield"].to_numpy()),
-        "baseline": evaluate_classifier(clf_models["baseline"], X_test, test_df["is_low_yield"].to_numpy()),
-        "production": evaluate_classifier(clf_models["production"], X_test, test_df["is_low_yield"].to_numpy()),
+        "validation": evaluate_classifier(production_clf, X_val, y_clf_val, threshold=decision_threshold),
+        "baseline": evaluate_classifier(clf_models["baseline"], X_test, y_clf_test),
+        "production": evaluate_classifier(production_clf, X_test, y_clf_test, threshold=decision_threshold),
+        "hpo": clf_hpo,
+        "calibration": calibration_info,
+        "baselines": {
+            name: evaluate_classifier(model, X_test, y_clf_test)
+            for name, model in fit_classifier_baselines(X_train, y_clf_train).items()
+        },
     }
     clf_bundle = ModelBundle(
         model_name="lot_yield_classifier",
         version=MODEL_VERSION,
         task="classification",
         baseline=clf_models["baseline"],
-        production=clf_models["production"],
+        production=production_clf,
         feature_columns=dummy_columns,
         metrics=clf_metrics,
         dataset="Synthetic lots (DEMO / SIMULATED DATA)",
@@ -181,6 +309,20 @@ def train_lot_yield_models(settings) -> tuple[ModelBundle, ModelBundle, pd.DataF
     features_path = artifacts_dir / "lot_features_snapshot.parquet"
     features_df.to_parquet(features_path, index=False)
     print(f"[LotYield] saved engineered feature snapshot -> {features_path}")
+
+    # Phase 7: experiment tracking (local MLflow file store; a no-op if unavailable).
+    split_info = {"split": "chronological 70/15/15", "n_train": len(train_df), "n_val": len(val_df), "n_test": len(test_df)}
+    for bundle, params in ((reg_bundle, reg_best_params), (clf_bundle, clf_best_params)):
+        run_id = log_run(
+            run_name=f"{bundle.model_name}_v{bundle.version}",
+            model_name=bundle.model_name,
+            model_version=bundle.version,
+            params={**(params or {}), **split_info, "n_hpo_trials": n_hpo_trials, "calibration": calibration_method},
+            metrics={k: v for k, v in bundle.metrics.items() if k in ("validation", "production", "baseline", "calibration")},
+            artifacts=[artifacts_dir / f"{bundle.model_name}_v{bundle.version}.metadata.json"],
+        )
+        if run_id:
+            print(f"[MLflow] logged {bundle.model_name} run {run_id}")
 
     return reg_bundle, clf_bundle, features_df, dummy_columns
 
@@ -208,7 +350,6 @@ def backfill_predictions(db, features_df: pd.DataFrame, dummy_columns: list, reg
     lot_repo = LotRepository(db)
     equipment_repo = EquipmentRepository(db)
     prediction_repo = PredictionRepository(db)
-    alert_repo = AlertRepository(db)
 
     db.predictions.delete_many({})
     db.alerts.delete_many({})
@@ -257,21 +398,35 @@ def backfill_predictions(db, features_df: pd.DataFrame, dummy_columns: list, reg
         )
 
         if risk["risk_level"] == "HIGH":
-            alert_repo.insert_one(
-                {
-                    "lot_id": row["lot_id"],
-                    "severity": "HIGH",
-                    "created_at": utc_now(),
-                    "message": (
-                        f"Lot {row['lot_id']} on {row['equipment']} is at "
-                        f"{risk['risk_probability'] * 100:.0f}% predicted low-yield risk."
-                    ),
-                    "acknowledged_by": None,
-                    "resolution": None,
-                }
+            # Phase 4: alerts go through the dispatcher (log channel by default;
+            # webhook/SMTP when configured) so a raised alert is always *delivered*
+            # and every attempt is recorded in alert_deliveries.
+            alert_dispatch_service.raise_alert(
+                db,
+                lot_id=row["lot_id"],
+                severity="HIGH",
+                risk_level="HIGH",
+                risk_probability=risk["risk_probability"],
+                reason=(
+                    f"Lot {row['lot_id']} on {row['equipment']} is at "
+                    f"{risk['risk_probability'] * 100:.0f}% predicted low-yield risk."
+                ),
+                source="backfill",
             )
 
     print(f"[Backfill] updated {len(features_sorted)} lots. Risk level distribution: {risk_level_counts}")
+
+
+def store_monitoring_snapshots(db, clf_bundle: ModelBundle) -> None:
+    """Phase 7: back-fill one model-monitoring snapshot per day from the fresh predictions."""
+    from app.quality import monitoring
+
+    threshold = (clf_bundle.metrics.get("calibration") or {}).get("decision_threshold") or monitoring.DEFAULT_DECISION_THRESHOLD
+    snapshots = monitoring.build_daily_snapshots(
+        monitoring.monitoring_frame_from_db(db), threshold=float(threshold), model_version=clf_bundle.version
+    )
+    monitoring.store_snapshots(db, snapshots)
+    print(f"[Monitoring] stored {len(snapshots)} daily snapshots.")
 
 
 def main() -> None:
@@ -280,7 +435,8 @@ def main() -> None:
     secom_bundle = train_secom_model(settings)
     reg_bundle, clf_bundle, features_df, dummy_columns = train_lot_yield_models(settings)
 
-    mongodb.connect()
+    # Remote clusters (Atlas) need a longer handshake than the API's fast-fail.
+    mongodb.connect(timeout_ms=10_000)
     try:
         db = mongodb.get_database()
     except DatabaseUnavailableError as exc:
@@ -290,6 +446,7 @@ def main() -> None:
 
     sync_model_versions(db, [secom_bundle, reg_bundle, clf_bundle])
     backfill_predictions(db, features_df, dummy_columns, reg_bundle, clf_bundle)
+    store_monitoring_snapshots(db, clf_bundle)
     print("\nDone. Dashboard/Lots/Risk Monitor endpoints now have real predictions to serve.")
 
 

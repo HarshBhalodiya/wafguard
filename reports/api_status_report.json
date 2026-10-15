@@ -1,0 +1,1160 @@
+{
+  "started": "2026-10-15T13:18:48.708383+00:00",
+  "results": [
+    {
+      "method": "POST",
+      "path": "/api/auth/login [admin]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 4947.2,
+      "note": "admin",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login [bad password]",
+      "expect": [
+        401
+      ],
+      "status": 401,
+      "error_code": "UNAUTHORIZED",
+      "ms": 941.4,
+      "note": "bad password | Invalid username or password.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login [viewer]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 865.6,
+      "note": "viewer",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "expect": [
+        307
+      ],
+      "status": 307,
+      "error_code": null,
+      "ms": 10.1,
+      "note": "Location: /docs",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/docs",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 10.0,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 83.7,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health/live",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 7.6,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health/ready",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 67.1,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/lots [no token]",
+      "expect": [
+        401
+      ],
+      "status": 401,
+      "error_code": "UNAUTHORIZED",
+      "ms": 66.2,
+      "note": "no token | Missing bearer token.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dashboard [no token]",
+      "expect": [
+        401
+      ],
+      "status": 401,
+      "error_code": "UNAUTHORIZED",
+      "ms": 14.5,
+      "note": "no token | Missing bearer token.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/equipment",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 455.9,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts?limit=5",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 813.1,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/wafers?lot_id=LOT_14963",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 204.4,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dashboard",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 13215.2,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/lots?limit=5",
+      "expect": [
+        200
+      ],
+      "status": 500,
+      "error_code": "INTERNAL_ERROR",
+      "ms": 321.7,
+      "note": "An unexpected error occurred. Check server logs.",
+      "verdict": "FAIL"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/lots/LOT_14963",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 2229.7,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/lots/LOT_DOES_NOT_EXIST",
+      "expect": [
+        404
+      ],
+      "status": 404,
+      "error_code": "NOT_FOUND",
+      "ms": 205.2,
+      "note": "Lot LOT_DOES_NOT_EXIST was not found.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/lots/LOT_14963/timeline",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 383.0,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/lots/LOT_14963/root-cause",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 236.8,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/lots/LOT_14963/recommendations",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 16484.5,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/lots/LOT_14963/evidence-graph?top_n=3",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 2054.0,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/recommendations/LOT_14963",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 706.3,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/root-cause/LOT_14963",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 315.5,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/root-cause/LOT_14963/graph",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 2527.9,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/similar/LOT_14963",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 17182.8,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/similarity/LOT_14963",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 17063.8,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/defects/lots/LOT_14963",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 299.7,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/quality/lots/LOT_14963",
+      "expect": [
+        200,
+        404
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 158.7,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/quality/summary",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 235.6,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/quality/drift?window_days=30",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 11376.8,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/quality/monitoring?limit=10",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 176.0,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/equipment",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 143.1,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/equipment/CMP_001",
+      "expect": [
+        200
+      ],
+      "status": 500,
+      "error_code": "INTERNAL_ERROR",
+      "ms": 463.3,
+      "note": "An unexpected error occurred. Check server logs.",
+      "verdict": "FAIL"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/equipment/NO_SUCH_TOOL",
+      "expect": [
+        404
+      ],
+      "status": 404,
+      "error_code": "NOT_FOUND",
+      "ms": 2383.9,
+      "note": "Equipment NO_SUCH_TOOL was not found.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/equipment/CMP_001/control-chart?parameter=rf_power",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 19465.3,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/equipment/CMP_001/control-chart?parameter=vibration",
+      "expect": [
+        404
+      ],
+      "status": 404,
+      "error_code": "NOT_FOUND",
+      "ms": 140.4,
+      "note": "Unknown control-chart parameter 'vibration'. Valid: temperature, pressure, rf_power, gas_flow.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/equipment/CMP_001/timeline",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 463.2,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/wafers?lot_id=LOT_14963",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 179.4,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/wafers/LOT_14963_W01/map",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 152.5,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/wafers/NO_SUCH_TOOL/map",
+      "expect": [
+        404
+      ],
+      "status": 404,
+      "error_code": "NOT_FOUND",
+      "ms": 149.1,
+      "note": "Wafer NO_SUCH_TOOL was not found.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/risk/lots",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 186.1,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/lot-risk/upcoming",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 84337.6,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/model-performance",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 749.6,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/models",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 765.2,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/whatif/limits",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 27.4,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts?limit=10",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 152.1,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts/channels",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 146.7,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts/deliveries?limit=5",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 163.1,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts/6ac7f345db534ecdfd89943d/timeline",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 290.0,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts/000000000000000000000000/timeline",
+      "expect": [
+        404
+      ],
+      "status": 404,
+      "error_code": "NOT_FOUND",
+      "ms": 223.3,
+      "note": "Alert 000000000000000000000000 was not found.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/jobs?limit=10",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 154.3,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ops/health-probe",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 12.1,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ops/metrics",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 11.2,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/lots/LOT_14963/copilot",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 31736.7,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/copilot/ask [global]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 80.8,
+      "note": "global",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/predict",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 570.7,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/yield/predict",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 581.5,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/whatif",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 1354.1,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/what-if [alias route (overrides)]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 475.6,
+      "note": "alias route (overrides)",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/whatif [unknown lot]",
+      "expect": [
+        404
+      ],
+      "status": 404,
+      "error_code": "NOT_FOUND",
+      "ms": 264.0,
+      "note": "unknown lot | Lot LOT_DOES_NOT_EXIST was not found.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/whatif [blocked change]",
+      "expect": [
+        422
+      ],
+      "status": 422,
+      "error_code": "VALIDATION_ERROR",
+      "ms": 109.6,
+      "note": "blocked change | Change blocked: temperature=900.0 degC is outside the physical limit [415.0, 460.0]",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/lot-risk",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 15889.4,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/quality/monitoring/snapshots [admin rebuild]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 42682.0,
+      "note": "admin rebuild",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/quality/monitoring/snapshots [viewer denied]",
+      "expect": [
+        403
+      ],
+      "status": 403,
+      "error_code": "FORBIDDEN",
+      "ms": 97.3,
+      "note": "viewer denied | Role 'viewer' is not permitted to perform this action.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/alerts/scan [admin scan]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 24576.5,
+      "note": "admin scan",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/alerts/channels [create probe channel]",
+      "expect": [
+        201
+      ],
+      "status": 201,
+      "error_code": null,
+      "ms": 571.7,
+      "note": "create probe channel",
+      "verdict": "PASS"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/alerts/channels/probe-log-tmp [delete probe channel]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 347.0,
+      "note": "delete probe channel",
+      "verdict": "PASS"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/alerts/channels/log [built-in protected (422 if seeded)]",
+      "expect": [
+        404,
+        422
+      ],
+      "status": 404,
+      "error_code": "NOT_FOUND",
+      "ms": 309.2,
+      "note": "built-in protected (422 if seeded) | Channel 'log' was not found.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/alerts/channels/probe-log-tmp [already gone]",
+      "expect": [
+        404
+      ],
+      "status": 404,
+      "error_code": "NOT_FOUND",
+      "ms": 203.9,
+      "note": "already gone | Channel 'probe-log-tmp' was not found.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/alerts/000000000000000000000000/acknowledge [nonexistent alert]",
+      "expect": [
+        404
+      ],
+      "status": 404,
+      "error_code": "NOT_FOUND",
+      "ms": 305.7,
+      "note": "nonexistent alert | Alert 000000000000000000000000 was not found.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/alerts/000000000000000000000000/resolve [nonexistent alert]",
+      "expect": [
+        404
+      ],
+      "status": 404,
+      "error_code": "NOT_FOUND",
+      "ms": 413.0,
+      "note": "nonexistent alert | Alert 000000000000000000000000 was not found.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/alerts/000000000000000000000000/redeliver [nonexistent alert]",
+      "expect": [
+        404
+      ],
+      "status": 404,
+      "error_code": "NOT_FOUND",
+      "ms": 303.8,
+      "note": "nonexistent alert | Alert 000000000000000000000000 was not found.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/data/import [empty import]",
+      "expect": [
+        200
+      ],
+      "status": 500,
+      "error_code": "INTERNAL_ERROR",
+      "ms": 116.5,
+      "note": "empty import | An unexpected error occurred. Check server logs.",
+      "verdict": "FAIL"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/defects/analyze [non-image file]",
+      "expect": [
+        415
+      ],
+      "status": 415,
+      "error_code": "UNSUPPORTED_FILE",
+      "ms": 2224.7,
+      "note": "non-image file | Could not read 'defects.csv' as an image.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/defects/analyze [synthetic wafer-map png]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 314.3,
+      "note": "synthetic wafer-map png",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/jobs",
+      "expect": [
+        202
+      ],
+      "status": 202,
+      "error_code": null,
+      "ms": 208.4,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/jobs [unknown job type]",
+      "expect": [
+        422
+      ],
+      "status": 422,
+      "error_code": "VALIDATION_ERROR",
+      "ms": 880.2,
+      "note": "unknown job type | unknown job type 'not_a_task'; available: ['data_quality_batch', 'root_cause_batch', 'upcoming_lot_r",
+      "verdict": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/jobs [viewer denied]",
+      "expect": [
+        403
+      ],
+      "status": 403,
+      "error_code": "FORBIDDEN",
+      "ms": 146.4,
+      "note": "viewer denied | Role 'viewer' is not permitted to perform this action.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/jobs/4d0bf7acf4c84dc39b5c322140216c5f",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 198.8,
+      "note": "",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/jobs/job_nope",
+      "expect": [
+        404
+      ],
+      "status": 404,
+      "error_code": "NOT_FOUND",
+      "ms": 205.0,
+      "note": "Job job_nope was not found.",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/jobs/4d0bf7acf4c84dc39b5c322140216c5f/result [2xx once done / 409 while running]",
+      "expect": [
+        200,
+        409
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 292.7,
+      "note": "2xx once done / 409 while running",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 108.9,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 8811.0,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/lots/LOT_14963 [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 196.9,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/equipment [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 204.9,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/equipment/CMP_001 [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 500,
+      "error_code": "INTERNAL_ERROR",
+      "ms": 721.2,
+      "note": "alias /api | An unexpected error occurred. Check server logs.",
+      "verdict": "FAIL"
+    },
+    {
+      "method": "GET",
+      "path": "/api/wafers?lot_id=LOT_14963 [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 2216.1,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/root-cause/LOT_14963 [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 239.3,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/similarity/LOT_14963 [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 15995.8,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/quality/summary [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 535.5,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatif/limits [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 7.5,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/alerts?limit=5 [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 244.7,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/models [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 1535.9,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/risk/lots [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 213.8,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/lot-risk/upcoming [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 61999.0,
+      "note": "alias /api",
+      "verdict": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs?limit=5 [alias /api]",
+      "expect": [
+        200
+      ],
+      "status": 200,
+      "error_code": null,
+      "ms": 180.5,
+      "note": "alias /api",
+      "verdict": "PASS"
+    }
+  ]
+}

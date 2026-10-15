@@ -5,6 +5,7 @@ from app.api.deps import get_db
 from app.database.repositories.equipment_repository import EquipmentRepository
 from app.database.repositories.lot_repository import LotRepository
 from app.database.repositories.maintenance_repository import MaintenanceRepository
+from app.services import control_chart_service
 from app.utils.exceptions import NotFoundError
 from app.utils.responses import success
 
@@ -35,3 +36,18 @@ def get_equipment(equipment_id: str, db: Database = Depends(get_db)):
             "peers": equipment_repo.peers(equipment["tool_family"], equipment_id),
         }
     )
+
+
+@router.get("/equipment/{equipment_id}/control-chart")
+def get_control_chart(
+    equipment_id: str,
+    parameter: str = "rf_power",
+    limit: int = 100,
+    db: Database = Depends(get_db),
+):
+    """Lot-level SPC chart for one tracked parameter on one tool (Phase 5, P5-2).
+    Centerline/sigma come from the tool's own prior history; each point's z-score
+    is judged only against points before it."""
+    if not EquipmentRepository(db).get_by_equipment_id(equipment_id):
+        raise NotFoundError(f"Equipment {equipment_id} was not found.")
+    return success(control_chart_service.compute_control_chart(db, equipment_id, parameter, limit=limit))

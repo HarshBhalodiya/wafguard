@@ -1,0 +1,201 @@
+WafGuard Upgrade
+
+ROLE
+You are a senior ML engineer and software architect. You are upgrading an existing project called WafGuard AI.
+
+CURRENT STATE (from the README)
+Backend: FastAPI + MongoDB (PyMongo), in backend/app, backend/scripts, backend/models, backend/tests
+Frontend: React (Vite) + Tailwind + Recharts/Plotly, 14 routes
+ML today: XGBoost yield regression + risk score, PyTorch CNN + Grad-CAM for wafer maps, SHAP + deviation root-cause, what-if simulator, Copilot Q&A
+Data today: UCI SECOM + WM-811K/synthetic wafer maps, linked by a thin synthetic layer
+Scripts today: download_secom.py, generate_synthetic_data.py, seed_database.py, train_yield_model.py, train_wafer_model.py
+GOAL
+
+Turn this from an "ML demo dashboard" into a process-engineering decision tool. Full target list is below (P0 to P10).
+
+HARD RULES (read first)
+Audit before you build. Read the whole repo. Write docs/AUDIT.md: what exists, what is fake or hardcoded, what is broken. Do not assume anything from the README.
+Do not break what works. Keep existing endpoints and pages working until the new ones replace them. Keep old tests passing.
+Work in phases. Do ONE phase at a time. At the end of each phase: run tests, run the training scripts, write a short summary, and STOP. Wait for me to say "continue".
+Every phase must have: code, tests, a runnable script, a doc update, and a metrics report saved in reports/.
+No fake numbers. No hardcoded yields, risks, or recommendations. Everything shown in the UI must come from a model, a query, or a rule that is written in the code.
+Be honest about synthetic data. The data is simulated. Label it as synthetic in the README, UI and reports. Never claim real-world accuracy.
+Correlation is not cause. Root-cause output = "ranked candidates with evidence". Counterfactuals = "model-based estimate, not proof". Say this in the UI text.
+Reproducible. Fixed random seeds. One config file. One command to regenerate data, train, and evaluate.
+Simple code. Small modules, type hints, docstrings, no clever tricks.
+If something in this prompt is unclear or impossible, say so and pick the simplest sensible option. Write it in docs/DECISIONS.md.
+TARGET FOLDER LAYOUT (add, don't rewrite)
+backend/app/
+  data_model/      # schemas for lots, wafers, equipment, etc.
+  simulator/       # synthetic manufacturing generator
+  features/        # feature engineering
+  ml/tabular/      # XGBoost + baselines
+  ml/temporal/     # GRU/LSTM (+ transformer)
+  ml/vision/       # CNN / ResNet / ViT + embeddings
+  similarity/      # lot + wafer similarity search
+  rootcause/       # multi-signal engine + evidence graph
+  risk/            # upcoming-lot risk engine
+  recommend/       # evidence-backed recommendations
+  whatif/          # counterfactual engine
+  quality/         # data validation, drift, monitoring
+  copilot/         # retrieval-grounded copilot
+  jobs/            # background tasks
+  evaluation/      # benchmark suite
+reports/           # metrics, plots, model comparison
+docs/              # AUDIT.md, DECISIONS.md, ARCHITECTURE.md, METHODOLOGY.md
+PHASE 0 — Audit (do this first, then stop)
+Produce docs/AUDIT.md.
+List every endpoint, every model, every Mongo collection, every frontend route.
+Mark each as: real / partly fake / hardcoded / broken.
+Propose the exact plan for Phase 1 and any risks you found.
+PHASE 1 (P0) — Foundation: data model + synthetic generator + event timeline
+1A. Manufacturing data model
+
+Create typed schemas (Pydantic) and Mongo collections for:
+
+Lot, Wafer, Equipment, Chamber, Recipe, ProcessParameter
+SensorTelemetry (time-series, per wafer/step/chamber)
+Defect, WaferMap, MaintenanceEvent, ElectricalTestResult
+Keep proper IDs and links (Lot → Wafer → Step → Chamber → Equipment).
+Add indexes. Add a simple migration/seed script.
+1B. Realistic synthetic generator
+
+Generate at least 5,000 lots (configurable), many equipment and chambers, many recipes. Must include:
+
+Time-series sensors per run: pressure, temperature, RF power, gas flow, vibration (at least 5), at fixed sample rate.
+Normal runs and failure scenarios, each with a hidden ground-truth label saved separately:
+chamber pressure instability
+RF power drift
+sensor drift (slow bias)
+equipment degradation (gets worse with time since maintenance)
+missing sensors / dropouts / stuck values
+recipe transition problems
+contamination / particle events
+Maintenance events that reset degradation.
+Defect patterns linked to causes (e.g. pressure instability → particles → edge/scratch pattern → defect density → yield loss). The link must be in the generator so the evidence graph can be tested later.
+Yield + electrical test results that depend on the causes plus noise.
+Save the ground-truth cause of every failure in a separate file (data/synthetic/ground_truth.parquet). Models must NEVER read it during training. It is only for evaluation.
+Keep a config with the failure rate (default 10–20% low-yield lots) so class imbalance is real.
+1C. Manufacturing event timeline
+
+One ordered event stream per lot/equipment: process start/end, parameter excursions, equipment alarms, maintenance, recipe transitions, inspection events. Add an API to query it.
+
+Acceptance: one command builds the dataset; tests check schema validity, no duplicate IDs, sensible ranges, correct failure rate, and that ground truth matches injected faults.
+
+PHASE 2 (P1) — Upgrade the ML
+2A. Strong tabular pipeline (keep XGBoost)
+raw data → feature engineering → train/val/test → XGBoost → yield + risk
+Feature engineering from time series: mean, std, min/max, slope, drift, excursion count, time-outside-limits, plus equipment age, time since maintenance, recipe, chamber history.
+Time-aware split (train on past, test on future). No random split. Split by lot, never by wafer (avoid leakage). Write a leakage check test.
+Cross-validation (time-series CV).
+Hyperparameter search (Optuna or similar, fixed budget).
+Class imbalance handling (class weights, and compare with resampling).
+Probability calibration (isotonic/Platt), plus reliability plot.
+Feature importance (gain + SHAP).
+Compare against simple baselines: mean predictor, linear/ridge, logistic regression, random forest. Save a comparison table in reports/tabular_comparison.md.
+2B. Temporal sensor model (PyTorch)
+Input: sensor sequences (pressure, temperature, RF, gas flow, vibration, ...). Handle missing values with masks.
+Output: yield risk, expected yield, and an anomaly embedding vector.
+Start with GRU/LSTM. Add a small Temporal Transformer later and compare on the SAME split.
+Only keep the Transformer in the product if it beats the GRU on the test set. Otherwise say so in the report.
+Also compare against the tabular XGBoost on the same test set. If the temporal model does not help, report that honestly.
+Save model + config + metrics. Fixed seeds. Early stopping.
+2C. Wafer defect vision upgrade
+Keep existing CNN + Grad-CAM.
+Add: wafer map → encoder → embedding → classification head, and store embeddings for similarity search.
+Compare CNN vs ResNet (or ConvNeXt) vs ViT (small). Experiment only; ship the best one.
+Report per-class recall, F1, confusion matrix.
+Warn clearly if trained on synthetic maps only.
+
+Acceptance: reports/ contains comparison tables, calibration plots, and confusion matrices. Tests pass.
+
+PHASE 3 (P2) — Root-cause intelligence
+3A. Historical lot similarity
+Build a lot representation = tabular features + temporal embedding + defect embedding (+ equipment state).
+Use a vector index (FAISS or simple cosine kNN).
+API: given a lot, return top-k similar historical lots with their yields and outcomes.
+Evaluate: retrieval precision and "similar-lot outcome consistency".
+3B. Multi-signal root-cause engine
+
+Combine, with clear and documented weights (config file):
+
+model attribution (SHAP)
+process deviation
+temporal evidence (when in the run did it start)
+historical evidence (similar lots)
+equipment history (maintenance age, alarms)
+defect evidence
+spatial evidence (wafer map pattern)
+
+Output per candidate: name, score, and the list of supporting evidence items (each with a source and value). Evaluate against the ground truth from Phase 1: Top-1, Top-3, Top-5, MRR. Compare against the old SHAP+deviation ranking to show whether the new engine is actually better.
+
+3C. Root-cause evidence graph
+Nodes: equipment/chamber, sensor issue, mechanism (e.g. particle generation), defect pattern, yield loss.
+Edges have a strength and evidence links.
+Build from data + rules; store rules in a file so an engineer can read them.
+API returns the graph as JSON (nodes/edges). Frontend shows it.
+PHASE 4 (P3) — Upcoming lot risk engine
+Dedicated module + endpoint /api/lot-risk.
+Inputs: upcoming lot's recipe, equipment state, latest sensor state, similar historical lots.
+Output: risk level (LOW/MEDIUM/HIGH), calibrated probability of low yield, top factors, similar lots.
+Must only use information that exists BEFORE the lot runs. Add a test that proves no future data is used.
+Also give an "upcoming lots" list sorted by risk.
+PHASE 5 (P4) — Evidence-backed recommendations
+Build a table of historical interventions in the synthetic data (action taken, cause, yield before/after). Mark it clearly as synthetic.
+Recommendation = rule/knowledge base + historical intervention stats. Do NOT let an LLM invent actions.
+Output: action text, number of similar past cases, recovery rate (e.g. 9/12), average yield change, and a warning when sample size is small (under 10).
+Store the engineering knowledge base as a readable YAML/JSON file.
+PHASE 6 (P5) — What-if / counterfactual upgrade
+Keep current simulator.
+Add: current lot → change → new prediction → yield difference → uncertainty (use ensemble, bootstrap, or quantile models).
+Show a range, not one number.
+Force a UI label: "Model-based counterfactual. Not proof that this change will produce this result."
+Block impossible changes (outside recipe/physical limits).
+PHASE 7 (P6) — Data and ML reliability
+Data validation: missing sensors, impossible values, unit mismatches, duplicates, timestamp problems, sensor outages. Run on ingest, store a quality report per lot.
+Drift: compare training distribution vs recent data (PSI / KS test) for sensors, recipes, equipment, defects. Endpoint + UI panel.
+Model monitoring: prediction distribution, calibration, accuracy when labels arrive, false alarms, missed low-yield lots. Store daily snapshots.
+Experiment tracking: MLflow (local file backend is fine). Log dataset version, model version, params, metrics, artifacts.
+Add a test that injects drift and checks that it is detected.
+PHASE 8 (P7) — Copilot upgrade
+Copilot must be retrieval-first: for a question like "Why is Lot L19382 high risk?" it retrieves prediction, top factors, similar lots, equipment state, defect patterns, and relevant docs, then answers.
+The LLM only writes the words. Every important sentence must carry a reference to an evidence item (lot ID, model output, event ID, doc section).
+If evidence is missing, the copilot says "not enough evidence" instead of guessing.
+Keep the LLM provider swappable (watsonx.ai or any other) behind one interface. Add a no-LLM fallback that returns a structured evidence summary.
+Add tests with fixed questions and check that cited evidence exists.
+PHASE 9 (P8) — Production engineering
+Split API into clear routers: /api/predict, /api/lot-risk, /api/root-cause, /api/similarity, /api/defects, /api/recommendations, /api/whatif, /api/quality.
+Versioned request/response schemas. Consistent error format.
+Background jobs for heavy work (sensor batches, image processing): API → job → ML → result. Use a simple queue (RQ/Celery/FastAPI background + Mongo job status). Endpoints: create job, get status, get result.
+Health check, logging, config via env, Dockerfile + docker-compose (API, Mongo, frontend).
+Model loading once at startup, not per request.
+PHASE 10 (P9) — UI built around decisions
+
+Do not just add charts. Rebuild the main flow around these screens:
+
+Lot Investigation: risk → why → what happened (defects) → what to investigate → what-if
+Upcoming Lots: table (lot, risk, main reason), sorted by risk
+Root Cause Explorer: cause → evidence → historical cases → recommendation, with the evidence graph
+Model & Data Health: drift, monitoring, data quality
+Show uncertainty and "synthetic data" labels. Loading and error states. Keep the old routes reachable until the new ones are done.
+Add a few frontend tests (Vitest).
+PHASE 11 (P10) — Evaluation benchmark
+
+Create python -m app.evaluation.run_all that writes reports/benchmark.md and reports/benchmark.json:
+
+Yield: MAE, RMSE, R²
+Risk: precision, recall, PR-AUC, calibration error, false alarm rate
+Root cause: Top-1, Top-3, Top-5, MRR (vs ground truth)
+Similarity: retrieval precision, outcome consistency
+Vision: F1, confusion matrix, per-class recall
+System: inference latency (p50/p95), throughput, memory
+Each number must be from the held-out future test set. Show baselines next to every result.
+Do not report a single "accuracy" number.
+OUTPUT FORMAT AFTER EACH PHASE
+What changed (files added/edited)
+How to run it (exact commands)
+Test results
+Metrics (with baselines)
+Known problems and things that could be wrong
+What you plan for the next phase Then STOP and wait.
+START NOW

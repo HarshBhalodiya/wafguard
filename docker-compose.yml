@@ -1,0 +1,82 @@
+# WafGuard AI — local stack (Phase 9): MongoDB + API + UI.
+#
+#   docker compose up --build                       # mongo, api (port 8000), ui (port 5173)
+#   docker compose --profile bootstrap run --rm pipeline   # one-time: generate -> seed -> train -> evaluate
+#
+# Data and trained artifacts live on the host (./data, ./backend/models/artifacts)
+# and are mounted, so retraining never requires rebuilding an image.
+# ALL DATA IS SYNTHETIC. Change JWT_SECRET_KEY before exposing this anywhere.
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DATABASE: wafguard
+      MODEL_DIR: ./backend/models/artifacts
+      SYNTHETIC_DATA_PATH: ./data/synthetic
+      SECOM_DATA_PATH: ./data/secom
+      MLFLOW_TRACKING_URI: ./mlruns
+      CORS_ORIGINS: http://localhost:5173
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-docker-compose}
+      LLM_PROVIDER: ${LLM_PROVIDER:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+    volumes:
+      - ./data:/app/data
+      - ./backend/models/artifacts:/app/backend/models/artifacts
+      - ./mlruns:/app/mlruns
+    ports:
+      - "8000:8000"
+
+  ui:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "5173:80"
+
+  # One-shot bootstrap: run with `docker compose --profile bootstrap run --rm pipeline`.
+  pipeline:
+    profiles: ["bootstrap"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DATABASE: wafguard
+      MODEL_DIR: ./backend/models/artifacts
+      SYNTHETIC_DATA_PATH: ./data/synthetic
+      SECOM_DATA_PATH: ./data/secom
+      MLFLOW_TRACKING_URI: ./mlruns
+    volumes:
+      - ./data:/app/data
+      - ./backend/models/artifacts:/app/backend/models/artifacts
+      - ./mlruns:/app/mlruns
+    command: ["sh", "-c", "python scripts/download_secom.py && python scripts/build_dataset.py --all && python scripts/train_whatif_ensemble.py"]
+
+volumes:
+  mongo-data:

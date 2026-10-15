@@ -10,6 +10,13 @@ number or a claim on its own.
 Without an `LLM_API_KEY`, `answer_question` returns a deterministic
 templated narrative, so the app never requires external credentials to
 demonstrate this feature end-to-end.
+
+Phase 4 (P4-6/P4-7, provider honesty): the phrasing layer names the
+provider that actually answered. Supported providers are exactly:
+`anthropic` and `openai_compatible` (any OpenAI-style `/chat/completions`
+endpoint, self-hosted or vendor — configured via `LLM_BASE_URL`). No other
+vendor is claimed anywhere in code or docs, and when nothing is configured
+the response says `llm_provider: null` with a deterministic template.
 """
 from typing import Optional
 
@@ -81,60 +88,105 @@ def _deterministic_narrative(evidence: dict) -> str:
     return " ".join(parts)
 
 
-def _llm_narrative(evidence: dict, question: str, settings) -> Optional[str]:
-    """Phrases the already-retrieved `evidence` naturally. Returns None (never
-    raises) on any failure, so the caller can fall back to the deterministic
-    narrative — a copilot outage must never break the underlying feature."""
-    if not settings.llm_api_key:
-        return None
+SYSTEM_PROMPT = (
+    "You explain semiconductor lot risk to a process engineer using ONLY the JSON facts "
+    "given to you. Never invent a number, sensor value, or cause. Call root-cause findings "
+    "'candidates', never 'confirmed causes'. Keep it to 3-4 sentences."
+)
+
+
+def _call_anthropic(evidence: dict, question: str, settings) -> str:
+    response = requests.post(
+        ANTHROPIC_MESSAGES_URL,
+        headers={
+            "x-api-key": settings.llm_api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        },
+        json={
+            "model": settings.llm_model or "claude-3-5-haiku-latest",
+            "max_tokens": 300,
+            "system": SYSTEM_PROMPT,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": f"Question: {question or 'Why is this lot at risk?'}\n\nVerified facts: {evidence}",
+                }
+            ],
+        },
+        timeout=10,
+    )
+    response.raise_for_status()
+    content = response.json().get("content", [])
+    return "".join(block.get("text", "") for block in content if block.get("type") == "text")
+
+
+def _call_openai_compatible(evidence: dict, question: str, settings) -> str:
+    base = (settings.llm_base_url or "https://api.openai.com/v1").rstrip("/")
+    response = requests.post(
+        f"{base}/chat/completions",
+        headers={
+            "authorization": f"Bearer {settings.llm_api_key}",
+            "content-type": "application/json",
+        },
+        json={
+            "model": settings.llm_model or "gpt-4o-mini",
+            "max_tokens": 300,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {
+                    "role": "user",
+                    "content": f"Question: {question or 'Why is this lot at risk?'}\n\nVerified facts: {evidence}",
+                },
+            ],
+        },
+        timeout=10,
+    )
+    response.raise_for_status()
+    choices = response.json().get("choices", [])
+    return choices[0].get("message", {}).get("content", "") if choices else ""
+
+
+PROVIDERS = {
+    "anthropic": _call_anthropic,
+    "openai_compatible": _call_openai_compatible,
+}
+
+
+def _llm_narrative(evidence: dict, question: str, settings) -> tuple[Optional[str], Optional[str]]:
+    """Phrases the already-retrieved `evidence` naturally via the configured
+    provider. Returns (text, provider); (None, None) when no provider is
+    configured or on ANY failure — the caller falls back to the deterministic
+    narrative, because a copilot outage must never break the underlying feature."""
+    provider = (settings.llm_provider or "").strip().lower()
+    if not settings.llm_api_key or provider not in PROVIDERS:
+        return None, None
     try:
-        response = requests.post(
-            ANTHROPIC_MESSAGES_URL,
-            headers={
-                "x-api-key": settings.llm_api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json={
-                "model": settings.llm_model or "claude-3-5-haiku-latest",
-                "max_tokens": 300,
-                "system": (
-                    "You explain semiconductor lot risk to a process engineer using ONLY the JSON facts "
-                    "given to you. Never invent a number, sensor value, or cause. Call root-cause findings "
-                    "'candidates', never 'confirmed causes'. Keep it to 3-4 sentences."
-                ),
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": f"Question: {question or 'Why is this lot at risk?'}\n\nVerified facts: {evidence}",
-                    }
-                ],
-            },
-            timeout=10,
-        )
-        response.raise_for_status()
-        content = response.json().get("content", [])
-        text = "".join(block.get("text", "") for block in content if block.get("type") == "text")
-        return text.strip() or None
+        text = PROVIDERS[provider](evidence, question, settings)
+        return (text.strip() or None), provider
     except Exception:  # noqa: BLE001 - a copilot failure must degrade, never propagate
-        logger.exception("LLM narrative call failed; falling back to the deterministic explainer.")
-        return None
+        logger.exception("LLM narrative call (%s) failed; falling back to the deterministic explainer.", provider)
+        return None, None
 
 
 def answer_question(db, lot_id: str, question: str = "") -> dict:
     settings = get_settings()
     evidence = _gather_evidence(db, lot_id)
 
-    narrative = _llm_narrative(evidence, question, settings)
-    source = "llm"
+    narrative, provider = _llm_narrative(evidence, question, settings)
     if narrative is None:
         narrative = _deterministic_narrative(evidence)
         source = "deterministic_template"
+    else:
+        source = f"llm:{provider}"
 
     return {
         "lot_id": lot_id,
         "question": question,
         "answer": narrative,
         "source": source,
+        # Honest provider contract (P4-7): which engine phrased this answer.
+        # Null when no LLM is configured — the answer is a deterministic template.
+        "llm_provider": provider,
         "evidence": evidence,
     }

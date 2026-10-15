@@ -1,0 +1,16 @@
+Verification run (not a replacement for the suite log; this is the handoff attestation itself).
+
+Checks:
+1. Backend suite: reports/phase6_testrun.log says "140 passed, ... exit=0".
+2. Frontend suite: npm test -- --run says "22 passed (22)".
+3. Pipeline stage logic (resolve_stages): default=['generate']; --all --from seed = ['seed','train','evaluate'].
+4. Health readiness module: shallow_readiness() returns dataset_present, tabular_models_ready, model_versions (all 4 bundles), evidence/embedding booleans — and no filesystem path leaks.
+5. DOM doctor/health literals unchanged: build_dataset.py still ships --all, --stages, --from, --plan; doctor.py still runs 13 checks with redacted URI; protocols are safety-net hardening paths not yet exercised (no uncommitted adds expected).
+
+Findings:
+- 1, 2, 3, 4: PASS as above.
+- 5: PASS by inspection of build_dataset.py/doctor.py/main.py/conftest.py sources; no devoted DOM test executed this turn because that ontology was not committed as code on disk.
+
+Limitations:
+- --all chain not re-run end-to-end against the live Atlas cluster (D-014 caveat, identical to what phase6_report.md states).
+- readiness is point-in-time, not a live prediction probe (also stated in the report).

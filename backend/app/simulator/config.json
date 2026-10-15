@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "seed": 20260930,
+  "n_lots": 5000,
+  "end_date": "2026-09-14T00:00:00Z",
+  "lookback_days": 180,
+  "wafers_per_lot": 25,
+  "low_yield_threshold": 85.0,
+  "low_yield_fraction": 0.15,
+  "fault_rates": {
+    "none": 0.68,
+    "chamber_pressure_instability": 0.05,
+    "rf_power_drift": 0.06,
+    "sensor_drift": 0.04,
+    "equipment_degradation": 0.06,
+    "sensor_dropout": 0.03,
+    "recipe_transition_problem": 0.04,
+    "contamination_event": 0.04
+  },
+  "telemetry": {
+    "sample_interval_seconds": 10,
+    "run_duration_seconds": 480,
+    "channels": ["pressure", "temperature", "rf_power", "gas_flow", "vibration", "plasma_intensity"],
+    "dropout_rate": 0.005,
+    "stuck_rate": 0.004
+  },
+  "electrical": {
+    "vbd_mean_normal": 8.2,
+    "vbd_std": 0.5,
+    "leak_mean_normal": 1.1,
+    "leak_std": 0.3,
+    "rsq_mean_normal": 0.98,
+    "rsq_std": 0.01
+  }
+}

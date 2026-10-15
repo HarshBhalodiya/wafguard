@@ -11,10 +11,13 @@ def configure_logging(level: int = logging.INFO) -> None:
     global _CONFIGURED
     if _CONFIGURED:
         return
+    from app.utils.request_context import RequestIdLogFilter
+
     handler = logging.StreamHandler(sys.stdout)
+    handler.addFilter(RequestIdLogFilter())
     handler.setFormatter(
         logging.Formatter(
-            fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+            fmt="%(asctime)s | %(levelname)-8s | %(request_id)s | %(name)s | %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
     )

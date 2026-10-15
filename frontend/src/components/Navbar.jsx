@@ -50,8 +50,11 @@ export default function Navbar() {
           <span className={`w-2 h-2 rounded-full ${statusColor}`} />
           {statusText}
         </div>
+        <div className="text-xs text-ink-secondary">
+          {localStorage.getItem("wafguard_username") || "signed in"}
+        </div>
         <div className="w-8 h-8 rounded-full bg-surface-raised border border-surface-border flex items-center justify-center text-xs font-semibold text-ink-secondary">
-          PE
+          {(localStorage.getItem("wafguard_username") || "PE").slice(0, 2).toUpperCase()}
         </div>
       </div>
     </header>

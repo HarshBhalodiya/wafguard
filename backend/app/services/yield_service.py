@@ -92,10 +92,25 @@ def predict_lot(
 
 
 def explain_lot(feature_snapshot: dict, top_n: int = 8) -> list[shap_service.FeatureContribution]:
-    """SHAP explanation of the classifier's low-yield probability for this lot (spec section 13)."""
+    """
+    SHAP explanation of the classifier's low-yield probability for this lot (spec section 13).
+
+    Since Phase 2A the production classifier is a CalibratedClassifierCV
+    wrapping the XGBoost model. SHAP's TreeExplainer cannot introspect the
+    calibration wrapper, so attribution runs on the inner (uncalibrated)
+    XGBoost model — the calibrated wrapper is a monotone remap of its
+    scores, so feature attributions are unchanged; only the absolute
+    output scale differs, which is exactly what "model attribution, not
+    physics" labeling (shap_service docstring) already covers.
+    """
     classifier_bundle = get_bundle(MODEL_B_CLASSIFIER)
     X = single_row_to_model_matrix(feature_snapshot, classifier_bundle["feature_columns"])
-    return shap_service.explain_instance(classifier_bundle["production"], X, top_n=top_n)
+    model = classifier_bundle["production"]
+    if hasattr(model, "calibrated_classifiers_"):  # CalibratedClassifierCV
+        model = model.calibrated_classifiers_[0].estimator
+    if hasattr(model, "estimator"):  # sklearn FrozenEstimator wrapper
+        model = model.estimator
+    return shap_service.explain_instance(model, X, top_n=top_n)
 
 
 def get_recent_equipment_yields(db, equipment_id: str, exclude_lot_id: Optional[str] = None, limit: int = 10) -> list:

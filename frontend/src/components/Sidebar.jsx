@@ -2,10 +2,20 @@ import { NavLink } from "react-router-dom";
 
 const NAV_SECTIONS = [
   {
+    label: "Decisions",
+    items: [
+      { to: "/upcoming", label: "Upcoming Lots", icon: "alert" },
+      { to: "/investigate", label: "Lot Investigation", icon: "search" },
+      { to: "/root-cause-explorer", label: "Root Cause Explorer", icon: "search" },
+      { to: "/health", label: "Model & Data Health", icon: "bar" },
+    ],
+  },
+  {
     label: "Overview",
     items: [
       { to: "/dashboard", label: "Dashboard", icon: "grid" },
       { to: "/risk-monitor", label: "Risk Monitor", icon: "alert" },
+      { to: "/alerts", label: "Alerts", icon: "bell" },
     ],
   },
   {
@@ -24,6 +34,7 @@ const NAV_SECTIONS = [
       { to: "/wafer-map", label: "Wafer Map", icon: "circle" },
       { to: "/defect-analyzer", label: "Defect Analyzer", icon: "camera" },
       { to: "/equipment", label: "Equipment", icon: "cpu" },
+      { to: "/control-charts", label: "Control Charts", icon: "trend" },
     ],
   },
   {
