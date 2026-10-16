@@ -17,6 +17,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import ORJSONResponse
 
 from app.api import (
     alerts,
@@ -93,6 +94,11 @@ app = FastAPI(
     ),
     version="0.2.0",
     lifespan=lifespan,
+    # Safety net at the serialization layer: orjson renders NaN/Infinity as null
+    # (stdlib json raises ValueError and turns the request into a 500). Writes are
+    # scrubbed at the repository/seeder level too — see app/utils/mongo_sanitize.py —
+    # so this only has to catch anything that slips past the write path.
+    default_response_class=ORJSONResponse,
 )
 app.state.warmup = {"models": [], "n_loaded": 0, "n_total": 0}
 

@@ -5,6 +5,7 @@ import { LoadingState, ErrorState } from "../components/LoadingState.jsx";
 import Panel from "../components/Panel.jsx";
 import EquipmentStatusCard from "../components/EquipmentStatusCard.jsx";
 import LotRiskTable from "../components/LotRiskTable.jsx";
+import { CloseIcon } from "../components/icons.jsx";
 import { formatDate } from "../utils/format";
 
 // P8-4: control-chart breach context comes from the existing P5-2 API — no new
@@ -79,7 +80,7 @@ export default function Equipment() {
       </div>
 
       {selected && (
-        <Panel title={selected} subtitle="Recent lots, maintenance history, and peer chambers" action={<button onClick={() => setSelected(null)} className="text-xs text-ink-muted hover:text-ink-primary">Close ✕</button>}>
+        <Panel title={selected} subtitle="Recent lots, maintenance history, and peer chambers" action={<button onClick={() => setSelected(null)} className="inline-flex items-center gap-1 text-xs text-ink-muted hover:text-ink-primary">Close <CloseIcon /></button>}>
           {detailState.loading && <LoadingState label="Loading equipment detail…" />}
           {detailState.error && <ErrorState error={detailState.error} onRetry={detailState.reload} />}
           {detailState.data && (

@@ -1,19 +1,23 @@
 import { useState } from "react";
 import Plot from "react-plotly.js";
+import { charts } from "../theme.js";
 import { EmptyState } from "./LoadingState.jsx";
 
+// Colours come from the shared palette; the stops themselves are semantic
+// (pass / fail / attention) rather than decorative.
+const { outside, pass, fail, attentionMid, attentionHigh } = charts.colorscale;
 const DIE_COLORSCALE = [
-  [0, "#0b0f14"],
-  [0.49, "#0b0f14"],
-  [0.5, "#22c55e"],
-  [0.99, "#22c55e"],
-  [1, "#ef4444"],
+  [0, outside],
+  [0.49, outside],
+  [0.5, pass],
+  [0.99, pass],
+  [1, fail],
 ];
 
 const CAM_COLORSCALE = [
-  [0, "#0b0f14"],
-  [0.5, "#f59e0b"],
-  [1, "#ef4444"],
+  [0, outside],
+  [0.5, attentionMid],
+  [1, attentionHigh],
 ];
 
 export default function WaferMapViewer({ dieGrid, gradCam, height = 360 }) {

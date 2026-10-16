@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { apiRequest } from "../services/api";
+import { charts } from "../theme.js";
 
 const PARAMETERS = [
   { key: "temperature", label: "Temperature" },
@@ -141,25 +142,27 @@ export default function ControlCharts() {
           </div>
           <ResponsiveContainer width="100%" height={340}>
             <LineChart data={points} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e2a3a" />
-              <XAxis dataKey="lot_id" tick={{ fontSize: 10, fill: "#64748b" }} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 10, fill: "#64748b" }} domain={["auto", "auto"]} />
+              <CartesianGrid strokeDasharray="3 3" stroke={charts.grid} />
+              <XAxis dataKey="lot_id" tick={{ fontSize: 10, fill: charts.axis }} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 10, fill: charts.axis }} domain={["auto", "auto"]} />
               <Tooltip
-                contentStyle={{ background: "#0f172a", border: "1px solid #1e2a3a", fontSize: 12 }}
+                contentStyle={{ background: charts.tooltip.background, border: `1px solid ${charts.tooltip.border}`, fontSize: 12 }}
+                labelStyle={{ color: charts.tooltip.text }}
                 formatter={(value, name) => [value, name]}
               />
-              {chart.ucl != null && <ReferenceLine y={chart.ucl} stroke="#f59e0b" strokeDasharray="4 4" />}
-              {chart.lcl != null && <ReferenceLine y={chart.lcl} stroke="#f59e0b" strokeDasharray="4 4" />}
-              <ReferenceLine y={chart.centerline} stroke="#38bdf8" />
-              <Line type="monotone" dataKey="value" name={parameter} stroke="#38bdf8" dot={(props) => {
+              {/* Control limits are statistical bounds — amber dashed, not a series colour. */}
+              {chart.ucl != null && <ReferenceLine y={chart.ucl} stroke={charts.series.warning} strokeDasharray="4 4" />}
+              {chart.lcl != null && <ReferenceLine y={chart.lcl} stroke={charts.series.warning} strokeDasharray="4 4" />}
+              <ReferenceLine y={chart.centerline} stroke={charts.series.accent} />
+              <Line type="monotone" dataKey="value" name={parameter} stroke={charts.series.accent} dot={(props) => {
                 const isBreach = props.payload?.breach;
                 return (
                   <circle
                     cx={props.cx}
                     cy={props.cy}
                     r={isBreach ? 5 : 3}
-                    fill={isBreach ? "#ef4444" : "#38bdf8"}
-                    stroke={isBreach ? "#fecaca" : "none"}
+                    fill={isBreach ? charts.series.negative : charts.series.accent}
+                    stroke={isBreach ? charts.series.negative : "none"}
                   />
                 );
               }} strokeWidth={1.5} />

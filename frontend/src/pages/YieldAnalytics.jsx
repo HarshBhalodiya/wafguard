@@ -4,6 +4,7 @@ import { get } from "../services/api";
 import { LoadingState, ErrorState } from "../components/LoadingState.jsx";
 import Panel from "../components/Panel.jsx";
 import YieldTrendChart from "../components/YieldTrendChart.jsx";
+import { charts } from "../theme.js";
 
 function groupAverage(lots, key) {
   const groups = {};
@@ -45,22 +46,22 @@ export default function YieldAnalytics() {
         <Panel title="Average Yield by Product">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={byProduct} layout="vertical" margin={{ left: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#232b36" horizontal={false} />
-              <XAxis type="number" domain={[0, 100]} tick={{ fill: "#8b96a5", fontSize: 11 }} axisLine={{ stroke: "#232b36" }} tickLine={false} />
-              <YAxis type="category" dataKey="name" tick={{ fill: "#8b96a5", fontSize: 11 }} axisLine={false} tickLine={false} width={80} />
-              <Tooltip contentStyle={{ background: "#121820", border: "1px solid #232b36", borderRadius: 8, fontSize: 12 }} formatter={(v) => [`${v}%`, "Avg yield"]} />
-              <Bar dataKey="avg_yield" fill="#22d3ee" radius={[0, 4, 4, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke={charts.grid} horizontal={false} />
+              <XAxis type="number" domain={[0, 100]} tick={{ fill: charts.axis, fontSize: 11 }} axisLine={{ stroke: charts.grid }} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ fill: charts.axis, fontSize: 11 }} axisLine={false} tickLine={false} width={80} />
+              <Tooltip contentStyle={{ background: charts.tooltip.background, border: `1px solid ${charts.tooltip.border}`, borderRadius: 6, fontSize: 12 }} labelStyle={{ color: charts.tooltip.text }} formatter={(v) => [`${v}%`, "Avg yield"]} />
+              <Bar dataKey="avg_yield" fill={charts.series.accent} radius={0} />
             </BarChart>
           </ResponsiveContainer>
         </Panel>
         <Panel title="Average Yield by Equipment" subtitle="Lowest first — worth investigating">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={byEquipment.slice(0, 10)} layout="vertical" margin={{ left: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#232b36" horizontal={false} />
-              <XAxis type="number" domain={[0, 100]} tick={{ fill: "#8b96a5", fontSize: 11 }} axisLine={{ stroke: "#232b36" }} tickLine={false} />
-              <YAxis type="category" dataKey="name" tick={{ fill: "#8b96a5", fontSize: 10 }} axisLine={false} tickLine={false} width={80} />
-              <Tooltip contentStyle={{ background: "#121820", border: "1px solid #232b36", borderRadius: 8, fontSize: 12 }} formatter={(v) => [`${v}%`, "Avg yield"]} />
-              <Bar dataKey="avg_yield" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke={charts.grid} horizontal={false} />
+              <XAxis type="number" domain={[0, 100]} tick={{ fill: charts.axis, fontSize: 11 }} axisLine={{ stroke: charts.grid }} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ fill: charts.axis, fontSize: 10 }} axisLine={false} tickLine={false} width={80} />
+              <Tooltip contentStyle={{ background: charts.tooltip.background, border: `1px solid ${charts.tooltip.border}`, borderRadius: 6, fontSize: 12 }} labelStyle={{ color: charts.tooltip.text }} formatter={(v) => [`${v}%`, "Avg yield"]} />
+              <Bar dataKey="avg_yield" fill={charts.series.warning} radius={0} />
             </BarChart>
           </ResponsiveContainer>
         </Panel>

@@ -1,3 +1,4 @@
+import { charts } from "../theme.js";
 import { EmptyState } from "./LoadingState.jsx";
 
 /**
@@ -5,7 +6,7 @@ import { EmptyState } from "./LoadingState.jsx";
  * them separately, but both are "ranked contributors with a percentage
  * bar" — one component avoids re-implementing the same bar math twice).
  */
-export default function RankedBarChart({ items, labelKey = "label", valueKey = "value", barColor = "#22d3ee", emptyLabel }) {
+export default function RankedBarChart({ items, labelKey = "label", valueKey = "value", barColor = charts.series.accent, emptyLabel }) {
   if (!items || items.length === 0) return <EmptyState label={emptyLabel || "No data yet."} />;
 
   const max = Math.max(...items.map((i) => i[valueKey]), 0.0001);
@@ -21,8 +22,9 @@ export default function RankedBarChart({ items, labelKey = "label", valueKey = "
               <span className="text-ink-primary font-medium">{item[labelKey]}</span>
               <span className="text-ink-secondary tabular-nums">{pct}%</span>
             </div>
-            <div className="h-2 rounded-full bg-surface-raised overflow-hidden">
-              <div className="h-full rounded-full" style={{ width: `${widthPct}%`, backgroundColor: item.color || barColor }} />
+            {/* Squared ends: these are measurement bars, not pills. */}
+            <div className="h-2 rounded-sm bg-surface-raised overflow-hidden">
+              <div className="h-full rounded-sm" style={{ width: `${widthPct}%`, backgroundColor: item.color || barColor }} />
             </div>
           </div>
         );

@@ -53,6 +53,7 @@ MAX_DEFECTS_PER_LOT = int(os.environ.get("SEED_MAX_DEFECTS_PER_LOT", "50"))
 from app.config import get_settings  # noqa: E402
 from app.database import mongodb  # noqa: E402
 from app.utils.logging import get_logger  # noqa: E402
+from app.utils.mongo_sanitize import scrub_nans  # noqa: E402
 from app.utils.security import hash_password  # noqa: E402
 
 logger = get_logger(__name__)
@@ -136,7 +137,10 @@ def insert_many_batched(collection, records: list, batch_size: int = BATCH_SIZE)
     idempotent)."""
     inserted = 0
     for start in range(0, len(records), batch_size):
-        batch = records[start : start + batch_size]
+        # Scrub here rather than in every _records builder: an empty CSV cell
+        # becomes float('nan') via pandas, and a NaN double in Mongo 500s any
+        # endpoint that later returns the document (NaN is not valid JSON).
+        batch = scrub_nans(records[start : start + batch_size])
         for attempt in range(1, RETRY_ATTEMPTS + 1):
             try:
                 collection.insert_many(batch, ordered=False)

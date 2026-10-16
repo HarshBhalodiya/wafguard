@@ -3,6 +3,7 @@ import { useApi } from "../hooks/useApi";
 import { get } from "../services/api";
 import Panel from "../components/Panel.jsx";
 import MetricCard from "../components/MetricCard.jsx";
+import { charts } from "../theme.js";
 import SyntheticNotice from "../components/SyntheticNotice.jsx";
 import { EmptyState, ErrorState, LoadingState } from "../components/LoadingState.jsx";
 import { formatPercent } from "../utils/format";
@@ -53,12 +54,15 @@ function MonitoringPanel() {
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={series}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#2a2f3a" />
-            <XAxis dataKey="date" tick={{ fontSize: 10 }} minTickGap={24} />
-            <YAxis tick={{ fontSize: 10 }} domain={[0, "auto"]} />
-            <Tooltip />
-            <Line type="monotone" dataKey="meanProbability" name="mean P(low yield)" dot={false} stroke="#60a5fa" />
-            <Line type="monotone" dataKey="ece" name="ECE (14-day)" dot={false} stroke="#f59e0b" />
+            <CartesianGrid strokeDasharray="3 3" stroke={charts.grid} />
+            <XAxis dataKey="date" tick={{ fontSize: 10, fill: charts.axis }} minTickGap={24} />
+            <YAxis tick={{ fontSize: 10, fill: charts.axis }} domain={[0, "auto"]} />
+            <Tooltip
+              contentStyle={{ background: charts.tooltip.background, border: `1px solid ${charts.tooltip.border}`, borderRadius: 6, fontSize: 12 }}
+              labelStyle={{ color: charts.tooltip.text }}
+            />
+            <Line type="monotone" dataKey="meanProbability" name="mean P(low yield)" dot={false} stroke={charts.series.accent} />
+            <Line type="monotone" dataKey="ece" name="ECE (14-day)" dot={false} stroke={charts.series.warning} />
           </LineChart>
         </ResponsiveContainer>
       </div>

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { WarningIcon } from "./icons.jsx";
 
 const STATUS_STYLES = {
   operational: { label: "Operational", color: "text-status-healthy", bar: "bg-status-healthy" },
@@ -22,13 +23,16 @@ export default function EquipmentStatusCard({ equipment, spc }) {
           <span>Health score</span>
           <span className="tabular-nums">{Math.round(equipment.health_score)}/100</span>
         </div>
-        <div className="h-1.5 rounded-full bg-surface-raised overflow-hidden">
-          <div className={`h-full rounded-full ${style.bar}`} style={{ width: `${equipment.health_score}%` }} />
+        <div className="h-1.5 rounded-sm bg-surface-raised overflow-hidden">
+          <div className={`h-full rounded-sm ${style.bar}`} style={{ width: `${equipment.health_score}%` }} />
         </div>
       </div>
 
       {equipment.anomaly_status && (
-        <div className="mt-2 text-[11px] text-status-warning">⚠ {equipment.anomaly_status}</div>
+        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-status-warning">
+          <WarningIcon />
+          <span>{equipment.anomaly_status}</span>
+        </div>
       )}
 
       {/* P8-4: control-chart breach context from the P5-2 API. Honest label:

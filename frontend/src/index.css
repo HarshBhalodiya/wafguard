@@ -2,12 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Colour tokens live in tailwind.config.js, which reads src/theme.js. */
+
 @layer base {
   html {
     color-scheme: dark;
   }
   body {
     @apply bg-surface text-ink-primary antialiased;
+  }
+  /* Visible keyboard focus: the accent outline, never removed outright. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand/60 ring-offset-0;
   }
   ::-webkit-scrollbar {
     width: 10px;
@@ -18,13 +24,27 @@
   }
   ::-webkit-scrollbar-thumb {
     background: theme("colors.surface.border");
-    border-radius: 6px;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: theme("colors.surface.strong");
+  }
+  /* Respect the OS "reduce motion" setting: spinners and skeletons keep their
+     meaning (something is loading) but stop animating. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
 @layer components {
   .panel {
-    @apply bg-surface-panel border border-surface-border rounded-lg shadow-panel;
+    @apply bg-surface-panel border border-surface-border rounded-md shadow-panel;
   }
   .panel-header {
     @apply flex items-center justify-between px-4 py-3 border-b border-surface-border;

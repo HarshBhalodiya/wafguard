@@ -2,6 +2,7 @@
 fastapi>=0.115
 uvicorn[standard]>=0.32
 python-multipart>=0.0.9
+orjson>=3.10  # response serialization: NaN/Inf -> null instead of a 500 (app-wide ORJSONResponse)
 
 # --- Config / validation ---
 pydantic>=2.8

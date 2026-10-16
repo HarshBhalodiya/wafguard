@@ -98,6 +98,13 @@ def validate_tables(
     issues: list[dict] = []
 
     lots = lots.copy()
+    # An empty batch — `POST /api/v1/data/import` with `"lots": []` — produces a
+    # DataFrame with no columns at all, so indexing `lot_id` below raised
+    # KeyError and turned an empty (but well-formed) import into a 500. There is
+    # nothing to validate, so return the same empty report frame the validator
+    # already builds for a batch with no issues.
+    if lots.empty or "lot_id" not in lots.columns:
+        return _reports([], [])
     lot_ids = list(dict.fromkeys(lots["lot_id"].astype(str)))
 
     # ---------------- lot-level

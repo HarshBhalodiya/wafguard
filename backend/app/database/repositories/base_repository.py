@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional
 from pymongo.collection import Collection
 from pymongo.database import Database
 
+from app.utils.mongo_sanitize import scrub_nans
+
 
 def strip_id(document: Optional[dict]) -> Optional[dict]:
     """Remove Mongo's internal ObjectId before a document goes into an API response."""
@@ -51,14 +53,14 @@ class BaseRepository:
         return self.collection.count_documents(query or {})
 
     def insert_one(self, document: Dict[str, Any]) -> None:
-        self.collection.insert_one(document)
+        self.collection.insert_one(scrub_nans(document))
 
     def insert_many(self, documents: List[Dict[str, Any]]) -> None:
         if documents:
-            self.collection.insert_many(documents)
+            self.collection.insert_many(scrub_nans(documents))
 
     def update_one(self, query: Dict[str, Any], update: Dict[str, Any], upsert: bool = False) -> None:
-        self.collection.update_one(query, {"$set": update}, upsert=upsert)
+        self.collection.update_one(query, {"$set": scrub_nans(update)}, upsert=upsert)
 
     def delete_many(self, query: Optional[Dict[str, Any]] = None) -> int:
         result = self.collection.delete_many(query or {})
